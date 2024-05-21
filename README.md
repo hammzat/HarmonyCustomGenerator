@@ -18,6 +18,11 @@ Allows you to generate semi-custom maps on default rust generator.
 - [x] Try Generate Rail Ring on any map.
 - [x] Generate or no Railside monuments.
 
+2. Map Image Generator
+   > Stolen from original Rust
+- [x] Generate splat/height map.
+- [ ] Generate monument names.
+
 Configure all features at `HarmonyConfig/CustomGeneratorCFG.json`
 ## Roadmap
 - Generate certain monuments on map
