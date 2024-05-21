@@ -42,14 +42,15 @@ namespace CustomGenerator
 
         public class ConfigData {
             public bool SkipAssetWarmup = true; // useless at this time
-            
+            public bool OverallocateSizes = true; // Generate maps over 6000 or smaller 1000
+            public bool OverallocateFolder = true; // Saves maps to /maps/ in root
+            public bool GenerateNewMapEverytime = true;
+
             public bool GenerateRoadRing = true;
             public bool GenerateRoadsizeMonuments = false;
 
             public bool GenerateRailRing = false;
             public bool GenerateRailsideMonuments = false;
-
-            public bool OverallocateSizes = true; // Generate maps over 6000 or smaller 1000
 
         }
         public class TempData {

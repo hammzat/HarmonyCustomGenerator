@@ -2,9 +2,9 @@
 using System.Reflection;
 using CustomGenerator.Utilities;
 using UnityEngine;
+using System;
 
 using static CustomGenerator.ExtConfig;
-using System;
 namespace CustomGenerator.Patches {
     [HarmonyPatch]
     internal static class TerrainMeta_Init
@@ -27,9 +27,11 @@ namespace CustomGenerator.Patches {
             CheckConfig();
             if (tempData.terrainTexturing == null || strType != "DONE")  return;
 
+            Debug.Log($"SIZE: {tempData.mapsize} | SEED: {tempData.mapseed}");
             MapImage.RenderMap(tempData.terrainTexturing, 1, 150);
+
             tempData.mapGenerated = true;
-            //Rust.Application.Quit();
+            Rust.Application.Quit();
             return;
         }
     }
