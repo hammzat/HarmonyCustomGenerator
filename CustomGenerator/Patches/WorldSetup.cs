@@ -28,10 +28,11 @@ namespace CustomGenerator.Patches {
             if (tempData.terrainTexturing == null || strType != "DONE")  return;
 
             Debug.Log($"SIZE: {tempData.mapsize} | SEED: {tempData.mapseed}");
-            MapImage.RenderMap(tempData.terrainTexturing, 1, 150);
+            MapImage.RenderMap(tempData.terrainTexturing, 0.75f, 150);
 
             tempData.mapGenerated = true;
-            Rust.Application.Quit();
+            //Rust.Application.Quit();
+            Application.Quit();
             return;
         }
     }

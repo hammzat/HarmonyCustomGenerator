@@ -15,7 +15,11 @@ namespace CustomGenerator.Generators
         private static AccessTools.FieldRef<GenerateRailRing, int> MinSize = AccessTools.FieldRefAccess<GenerateRailRing, int>("MinWorldSize");
         private static void Prefix(GenerateRailRing __instance, ref int seed) {
             CheckConfig();
-            if (!Config.GenerateRailRing) return;
+            if (!Config.Rail.Enabled) {
+                MinSize(__instance) = int.MaxValue;
+                Debug.Log($"[CGen - RAIL] MinWorldSize changed to max!");
+            }
+            if (!Config.Rail.GenerateRing) return;
 
             MinSize(__instance) = 0;
             Debug.Log($"[CGen - RAIL] MinWorldSize changed to 0!");
@@ -24,7 +28,7 @@ namespace CustomGenerator.Generators
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
             List<CodeInstruction> list = instructions.ToList();
             CheckConfig();
-            if (!Config.GenerateRailRing) return list;
+            if (!Config.Rail.GenerateRing) return list;
 
             for (int i = 0; i < list.Count; i++)
             {
@@ -50,10 +54,12 @@ namespace CustomGenerator.Generators
         private static AccessTools.FieldRef<PlaceMonumentsRailside, int> MinSize = AccessTools.FieldRefAccess<PlaceMonumentsRailside, int>("MinWorldSize");
         private static void Prefix(PlaceMonumentsRailside __instance) {
             CheckConfig();
-            if (!Config.GenerateRailRing || Config.GenerateRailsideMonuments) return;
+            if (Config.Rail.GenerateSideMonuments) return;
 
             MinSize(__instance) = 99999;
-            Debug.Log($"[CGen - RAILside] MinWorldSize changed to 99999!");
+            Debug.Log($"[CGen - RAILmonum] MinWorldSize changed to 99999!");
         }
     }
+
+    
 }

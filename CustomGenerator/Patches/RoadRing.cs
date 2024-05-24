@@ -14,8 +14,12 @@ namespace CustomGenerator.Generators {
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(GenerateRoadRing), "Process"); }
         private static AccessTools.FieldRef<GenerateRoadRing, int> MinSize = AccessTools.FieldRefAccess<GenerateRoadRing, int>("MinWorldSize");
         private static void Prefix(GenerateRoadRing __instance, ref int seed) {
-            CheckConfig();
-            if (!Config.GenerateRoadRing) return;
+            CheckConfig(); 
+            if (!Config.Road.Enabled) {
+                MinSize(__instance) = int.MaxValue;
+                Debug.Log($"[CGen - ROAD] MinWorldSize changed to max! Dont generate!");
+            }
+            if (!Config.Road.GenerateRing) return;
 
             MinSize(__instance) = 0;
             Debug.Log($"[CGen - ROAD] MinWorldSize changed to 0!");
@@ -24,7 +28,7 @@ namespace CustomGenerator.Generators {
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
             List<CodeInstruction> list = instructions.ToList();
             CheckConfig();
-            if (!Config.GenerateRoadRing) return list;
+            if (!Config.Road.GenerateRing) return list;
 
             for (int i = 0; i < list.Count; i++)
             {
@@ -50,10 +54,23 @@ namespace CustomGenerator.Generators {
         private static AccessTools.FieldRef<PlaceMonumentsRoadside, int> MinSize = AccessTools.FieldRefAccess<PlaceMonumentsRoadside, int>("MinWorldSize");
         private static void Prefix(PlaceMonumentsRoadside __instance, ref int seed) {
             CheckConfig();
-            if (Config.GenerateRoadsizeMonuments) return;
+            if (Config.Road.GenerateSideMonuments) return;
 
             MinSize(__instance) = 99999;
-            Debug.Log($"[CGen - ROADside] MinWorldSize changed to 99999!");
+            Debug.Log($"[CGen - ROADmonum] MinWorldSize changed to 99999!");
+        }
+    }
+
+    [HarmonyPatch]
+    class PlaceRoadObjects_Process
+    {
+        private static MethodBase TargetMethod() { return AccessTools.Method(typeof(PlaceRoadObjects), "Process"); }
+        private static bool Prefix(PlaceRoadObjects __instance)
+        {
+            CheckConfig();
+            if (!Config.Road.GenerateSideObjects) 
+                return false;
+            return true;
         }
     }
 }

@@ -41,17 +41,19 @@ namespace CustomGenerator
         private static readonly string Location = Path.Combine("HarmonyConfig", "CustomGeneratorCFG.json");
 
         public class ConfigData {
-            public bool SkipAssetWarmup = true; // useless at this time
+            public bool SkipAssetWarmup = false; // useless at this time
             public bool OverallocateSizes = true; // Generate maps over 6000 or smaller 1000
             public bool OverallocateFolder = true; // Saves maps to /maps/ in root
             public bool GenerateNewMapEverytime = true;
 
-            public bool GenerateRoadRing = true;
-            public bool GenerateRoadsizeMonuments = false;
-
-            public bool GenerateRailRing = false;
-            public bool GenerateRailsideMonuments = false;
-
+            public SimplePath Road = new SimplePath();
+            public SimplePath Rail = new SimplePath();
+        }
+        public class SimplePath {
+            public bool Enabled = true;
+            public bool GenerateRing = true;
+            public bool GenerateSideMonuments = true;
+            public bool GenerateSideObjects = false;
         }
         public class TempData {
             public uint mapsize = 0;

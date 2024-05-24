@@ -9,20 +9,25 @@ namespace CustomGenerator.Utilities
 {
     static class MapImage
     {
-        public static void RenderMap(TerrainTexturing _instance, float scale, int oceanMargin) {
+        public static void RenderMap(TerrainTexturing _instance, float scale = 0.5f, int oceanMargin = 500) {
             byte[] array = MapImageRender.Render(_instance, out int num, out int num2, out Color color, scale, false, false, oceanMargin);
             if (array == null) {
                 Debug.Log("MapImageGenerator returned null!");
                 return;
             }
 
+            GetSizes(num, num2);
             if (!Directory.Exists("mapimages")) Directory.CreateDirectory("mapimages");
             string fullPath = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, $"mapimages/MAP{tempData.mapsize}_{tempData.mapseed}.png"));
             File.WriteAllBytes(fullPath, array);
-            Debug.Log($"Generated Map image! \npath: {fullPath}");
+            Debug.Log($"Generated Map image: <root>/mapimages/ \nMap saved to <root>/maps/!\n\n\n\n");
+        }
+
+        private static void GetSizes(int width, int height) {
+            Debug.Log($"{width}x{height} | map: {tempData.mapsize}");
+            Debug.Log($"Cef: {width / tempData.mapsize}x{height / tempData.mapsize}");
         }
     }
-
     // Original Facepunch Code
     public static class MapImageRender {
         private static readonly Vector4 StartColor = new Vector4(0.286274523f, 23f / 85f, 0.247058839f, 1f);

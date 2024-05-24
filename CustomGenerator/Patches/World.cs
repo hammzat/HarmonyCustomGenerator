@@ -56,7 +56,7 @@ namespace CustomGenerator.Generators
             if (!Directory.Exists(FolderName))
                 Directory.CreateDirectory(FolderName);
 
-            Debug.Log($"Overrides save folder to {FolderLocation}");
+            Debug.Log($"Override save folder to {FolderLocation}");
             __result = FolderLocation;
         }
     }
