@@ -23,6 +23,7 @@ Allows you to generate semi-custom maps on default rust generator.
 - [x] Generate splat/height map.
 - [ ] Generate monument names.
 
+> ! Don't generate maps larger than 6000, the Rust client won't be able to process them and will just display as a 6000 map with flying prefabs and monuments
 Configure all features at `HarmonyConfig/CustomGeneratorCFG.json`
 ## Roadmap
 - Generate certain monuments on map
