@@ -37,8 +37,8 @@ namespace CustomGenerator {
     internal static class Bootstrap_StartupShared {
         [HarmonyPrefix]
         private static void Prefix() {
-            Debug.Log("CustomGenerator by [aristocratos]");
-            Debug.Log(new string('-', 30) + "\nхяонкэгсире рнкэйн дкъ цемепюжхх йюпр! \nме хяонкэгсире мю пюанвел яепбепе!!! \n" + new string('-', 30));
+            Debug.Log($"CustomGenerator by [aristocratos]");
+            Debug.Log(new string('-', 30) + "\nUSE ONLY FOR MAP GENERATING! \nDONT USE ON LIVE SERVER!!! \n" + new string('-', 30));
         }
     }
 

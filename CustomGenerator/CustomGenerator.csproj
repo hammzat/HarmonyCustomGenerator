@@ -19,26 +19,8 @@
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>..\..\..\..\..\..\..\..\Server\server\RustDedicated_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
-    <Reference Include="Oxide.Common">
-      <HintPath>..\..\..\..\..\..\..\..\Server\server\RustDedicated_Data\Managed\Oxide.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Oxide.Core">
-      <HintPath>..\..\..\..\..\..\..\..\Server\server\RustDedicated_Data\Managed\Oxide.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Oxide.MySql">
-      <HintPath>..\..\..\..\..\..\..\..\Server\server\RustDedicated_Data\Managed\Oxide.MySql.dll</HintPath>
-    </Reference>
-    <Reference Include="Oxide.References">
-      <HintPath>..\..\..\..\..\..\..\..\Server\server\RustDedicated_Data\Managed\Oxide.References.dll</HintPath>
-    </Reference>
-    <Reference Include="Oxide.Rust">
-      <HintPath>..\..\..\..\..\..\..\..\Server\server\RustDedicated_Data\Managed\Oxide.Rust.dll</HintPath>
-    </Reference>
-    <Reference Include="Oxide.SQLite">
-      <HintPath>..\..\..\..\..\..\..\..\Server\server\RustDedicated_Data\Managed\Oxide.SQLite.dll</HintPath>
-    </Reference>
-    <Reference Include="Oxide.Unity">
-      <HintPath>..\..\..\..\..\..\..\..\Server\server\RustDedicated_Data\Managed\Oxide.Unity.dll</HintPath>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\..\..\..\..\..\..\Server\server\RustDedicated_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Rust.Clans">
       <HintPath>..\..\..\..\..\..\..\..\Server\server\RustDedicated_Data\Managed\Rust.Clans.dll</HintPath>

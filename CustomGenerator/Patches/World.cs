@@ -1,12 +1,7 @@
 ﻿using HarmonyLib;
-using Rust.Demo;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Text;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 using static CustomGenerator.ExtConfig;
@@ -17,7 +12,7 @@ namespace CustomGenerator.Generators
         private static uint _size = 0;
         private static void Prefix(ref uint size) {
             CheckConfig();
-            if (!Config.OverallocateSizes) return;
+            if (!Config.mapSettings.OverrideSizes) return;
             tempData.mapsize = size;
             _size = size;
 
@@ -41,7 +36,7 @@ namespace CustomGenerator.Generators
     public static class World_getSize {
         public static void Postfix(ref uint __result) {
             CheckConfig();
-            if (!Config.OverallocateSizes) return;
+            if (!Config.mapSettings.OverrideSizes) return;
             if (tempData.mapsize == 0) { Debug.Log("map size == 0!"); return; }
             __result = tempData.mapsize;
         }
@@ -52,7 +47,7 @@ namespace CustomGenerator.Generators
         static readonly string FolderLocation = Path.GetFullPath(FolderName);
         public static void Postfix(ref string __result) {
             CheckConfig();
-            if (!Config.OverallocateFolder) return;
+            if (!Config.mapSettings.OverrideFolder) return;
             if (!Directory.Exists(FolderName))
                 Directory.CreateDirectory(FolderName);
 
@@ -65,8 +60,19 @@ namespace CustomGenerator.Generators
     public static class GetSizePatch {
         public static void Postfix(ref bool __result) {
             CheckConfig();
-            if (!Config.GenerateNewMapEverytime) return;
+            if (!Config.mapSettings.GenerateNewMapEverytime) return;
             __result = false;
+        }
+    }
+
+    [HarmonyPatch(typeof(World), "get_MapFileName")]
+    public static class World_getMapFileName {
+        public static void Postfix(ref string __result) {
+            CheckConfig();
+            if (!Config.mapSettings.OverrideName) return;
+            string mapName = string.Format(Config.mapSettings.MapName, tempData.mapsize, tempData.mapseed) + (!Config.mapSettings.MapName.EndsWith(".map") ? ".map" : "");
+            Debug.Log($"Override map name to {mapName}");
+            __result = mapName;
         }
     }
 }
