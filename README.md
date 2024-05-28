@@ -8,15 +8,21 @@ Allows you to generate semi-custom maps on default rust generator.
 
 1. QoL
 - [ ] Skip Asset Warmup on start
-- [x] Generate map over default limits
-- [x] Save map on certain folder
-- [x] Generate new map everytime
 
+2. Map Settings
+- [x] Generate map over default limits
+- [x] Generate new map everytime
+- [x] Save map on certain folder
+- [x] Save map with certain name
+  
 2. Generator
 - [x] Try Generate Road Ring on any map.
 - [x] Generate or no Roadside monuments.
 - [x] Try Generate Rail Ring on any map.
 - [x] Generate or no Railside monuments.
+- [ ] Generate certain monuments on map.
+- [ ] Replace the generated monuments with your custom ones.
+    > For example: switch vanilla outpost to custom generated.
 
 2. Map Image Generator
    > Stolen from original Rust
@@ -29,10 +35,6 @@ Allows you to generate semi-custom maps on default rust generator.
 
 Configure all features at `HarmonyConfig/CustomGeneratorCFG.json`
 
-## Roadmap
-- Generate certain monuments on map
-- Replace the generated monuments with your custom ones
-    > For example: switch vanilla outpost to custom generated.
 ------
 ### Support
 For support DM me on discord - aristocratos
