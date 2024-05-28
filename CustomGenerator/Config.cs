@@ -47,6 +47,8 @@ namespace CustomGenerator
             public uint mapseed = 0;
             public bool mapGenerated = false;
             public TerrainTexturing terrainTexturing;
+            public TerrainMeta terrainMeta;
+            public TerrainPath terrainPath;
         }
 
 

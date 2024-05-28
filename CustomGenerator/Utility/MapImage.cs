@@ -1,22 +1,31 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Drawing;
 using UnityEngine;
 
 using Color = UnityEngine.Color;
 using static CustomGenerator.ExtConfig;
-namespace CustomGenerator.Utilities
+using Facepunch;
+using System.Reflection;
+using HarmonyLib;
+using System.Drawing.Text;
+using Font = System.Drawing.Font;
+using Graphics = System.Drawing.Graphics;
+namespace CustomGenerator.Utility
 {
     static class MapImage
     {
         public static void RenderMap(TerrainTexturing _instance, float scale = 0.5f, int oceanMargin = 500) {
-            byte[] array = MapImageRender.Render(_instance, out int num, out int num2, out Color color, scale, false, false, oceanMargin);
+            byte[] array = MapImageRender.Render(_instance, out int num, out int num2, out Color color, scale, false, false, 200);
             if (array == null) {
                 Debug.Log("MapImageGenerator returned null!");
                 return;
             }
 
-            GetSizes(num, num2);
+            
             if (!Directory.Exists("mapimages")) Directory.CreateDirectory("mapimages");
             string fullPath = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, $"mapimages/MAP{tempData.mapsize}_{tempData.mapseed}.png"));
             File.WriteAllBytes(fullPath, array);
@@ -25,10 +34,11 @@ namespace CustomGenerator.Utilities
 
         private static void GetSizes(int width, int height) {
             Debug.Log($"{width}x{height} | map: {tempData.mapsize}");
-            Debug.Log($"Cef: {width / tempData.mapsize}x{height / tempData.mapsize}");
+            Debug.Log($"monuments count: {tempData.terrainMeta.GetComponent<TerrainPath>().Monuments.Count}");
         }
     }
-    // Original Facepunch Code
+
+    // Original Facepunch Code && MJSU plugin - Rust Map Api 
     public static class MapImageRender {
         private static readonly Vector4 StartColor = new Vector4(0.286274523f, 23f / 85f, 0.247058839f, 1f);
         private static readonly Vector4 WaterColor = new Vector4(0.16941601f, 0.317557573f, 0.362000018f, 1f);
@@ -47,8 +57,11 @@ namespace CustomGenerator.Utilities
         private const float Contrast = 0.94f;
         private const float OceanWaterLevel = 0f;
         private static readonly Vector4 Half = new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
-
-        private readonly struct Array2D<T> {
+        private static Array2D<Color> generatedMap;
+        private static Array2D<Color> generatedMapIcons;
+        private static int width;
+        private static int height;
+        public readonly struct Array2D<T> {
             private readonly T[] _items;
             private readonly int _width;
             private readonly int _height;
@@ -66,6 +79,124 @@ namespace CustomGenerator.Utilities
                 _width = width;
                 _height = height;
             }
+            public Bitmap ToBitmap()
+            {
+                Bitmap bitmap = new Bitmap(_width, _height);
+                for (int y = 0; y < _height; y++)
+                {
+                    for (int x = 0; x < _width; x++)
+                    {
+                        System.Drawing.Color color = (System.Drawing.Color)(object)this[x, y];
+                        bitmap.SetPixel(x, y, color);
+                    }
+                }
+                return bitmap;
+            }
+            public static Array2D<Color> FromBitmap(Bitmap bitmap)
+            {
+                int width = bitmap.Width;
+                int height = bitmap.Height;
+
+                Color[] colors = new Color[width * height];
+
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        var px = bitmap.GetPixel(x, y);
+                        colors[y * width + x] = new Color(px.R, px.G, px.B);
+                    }
+                }
+
+                return new Array2D<Color>(colors, width, height);
+            }
+            public bool IsEmpty()
+            {
+                return _items == null || _width == 0 && _height == 0;
+            }
+
+            public Array2D<T> Clone()
+            {
+                return new Array2D<T>((T[])_items.Clone(), _width, _height);
+            }
+
+        }
+
+        private static FieldInfo _monuments = AccessTools.TypeByName("TerrainPath").GetField("Monuments", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        private static void LoadIcons(ref Array2D<Color> output, TerrainTexturing _instance, int imageWidth, int imageHeight, int mapResolution, int oceanMargin)
+        {
+
+            List<MonumentInfo> monuments = (List<MonumentInfo>)_monuments.GetValue(tempData.terrainPath);
+            Debug.Log(monuments.Count);
+            Debug.Log("Generating names...");
+            var originalMap = mapResolution + oceanMargin;
+            var originalMapOffset = imageWidth - originalMap;
+            Debug.Log(mapResolution);
+            Debug.Log(originalMapOffset);
+            for (int i = 0; i < 20; i++)
+            {
+                for (int j = 0; j < 20; j++)
+                {
+                    output[i, j] = Color.black;
+                    output[imageWidth - i, imageHeight - j] = Color.cyan;
+
+                    output[imageWidth - i, j] = Color.magenta;
+                    output[i, imageHeight - j] = Color.grey;
+
+
+                    output[originalMapOffset + i, originalMapOffset + j] = Color.black;
+                    output[originalMap + i, originalMap + j] = Color.cyan;
+                }
+            }
+            foreach (MonumentInfo monument in monuments)
+            {
+                string name = GetMonumentName(monument);
+                Vector3 position = monument.transform.position;
+                Debug.Log(name);
+
+                int x = (int)(((position.x + (tempData.mapsize / 2.0)) / tempData.mapsize) * mapResolution) + originalMapOffset;
+                int z = (int)(((position.z + (tempData.mapsize / 2.0)) / tempData.mapsize) * mapResolution) + originalMapOffset;
+
+                for (int i = 0; i < 10; i++)
+                {
+                    for (int j = 0; j < 10; j++)
+                    {
+                        if ((x + i < imageWidth) && (z + j < imageHeight))
+                        {
+                            output[x + i, z + j] = Color.magenta;
+                        }
+                    }
+                }
+
+                RenderText(name, "PermanentMarker.ttf", 14, System.Drawing.Color.Black, output.ToBitmap(), x, z, out output);
+            }
+        }
+
+        public static void RenderText(string text, string fontPath, int fontSize, System.Drawing.Color color, System.Drawing.Bitmap output, int xx, int zz, out Array2D<Color> array)
+        {
+            PrivateFontCollection fontCollection = new PrivateFontCollection();
+            fontCollection.AddFontFile(fontPath);
+            Font font = new Font(fontCollection.Families[0], fontSize);
+            Graphics graphics = Graphics.FromImage(output);
+            SolidBrush brush = new SolidBrush(color);
+            graphics.DrawString(text, font, brush, xx, zz);
+
+
+            int width = output.Width;
+            int height = output.Height;
+
+            Color[] colors = new Color[width * height];
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    var px = output.GetPixel(x, y);
+                    colors[y * width + x] = new Color(px.R, px.G, px.B);
+                }
+            }
+
+            array = new Array2D<Color>(colors, width, height);
         }
 
         public static byte[] Render(TerrainTexturing _instance, out int imageWidth, out int imageHeight, out Color background, float scale = 0.5f, bool lossy = true, bool transparent = false, int oceanMargin = 500)
@@ -97,7 +228,7 @@ namespace CustomGenerator.Utilities
             float maxDepth = (transparent ? Mathf.Max(Mathf.Abs(GetHeight(0f, 0f)), 5f) : 50f);
             Vector4 offShoreColor = (transparent ? Vector4.zero : OffShoreColor);
             Vector4 waterColor = (transparent ? new Vector4(WaterColor.x, WaterColor.y, WaterColor.z, 0.5f) : WaterColor);
-            Parallel.For(0, imageHeight, delegate (int y) {
+            System.Threading.Tasks.Parallel.For(0, imageHeight, delegate (int y) {
                 y -= oceanMargin;
                 float y2 = y * invMapRes;
                 int num = mapRes + oceanMargin;
@@ -129,6 +260,8 @@ namespace CustomGenerator.Utilities
                 }
             });
             background = output[0, 0];
+
+            LoadIcons(ref output, _instance, imageWidth, imageHeight, mapRes, oceanMargin);
             return EncodeToFile(imageWidth, imageHeight, array, lossy);
 
             Vector3 GetNormal(float x, float y) => terrainHeightMap.GetNormal(x, y);
@@ -138,7 +271,7 @@ namespace CustomGenerator.Utilities
 
         private static byte[] EncodeToFile(int width, int height, Color[] pixels, bool lossy)
         {
-            Texture2D? texture2D = null;
+            Texture2D texture2D = null;
             try {
                 texture2D = new Texture2D(width, height, TextureFormat.RGBA32, mipChain: false);
                 texture2D.SetPixels(pixels);
@@ -150,6 +283,24 @@ namespace CustomGenerator.Utilities
                     UnityEngine.Object.Destroy(texture2D);
                 }
             }
+        }
+
+        private static string GetMonumentName(MonumentInfo monument)
+        {
+            string name = monument.displayPhrase.english.Replace("\n", "");
+            if (string.IsNullOrEmpty(name)) {
+                if (monument.Type == MonumentType.Cave) {
+                    name = "Cave";
+                }
+                else if (monument.name.Contains("power_sub")) {
+                    name = "Power Sub Station";
+                }
+                else {
+                    name = monument.name;
+                }
+            }
+
+            return name;
         }
     }
 }
