@@ -1,21 +1,21 @@
 ﻿using System;
 using System.IO;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+using System.Reflection;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Text;
+using System.Drawing.Imaging;
+using HarmonyLib;
 using UnityEngine;
 
 using Color = UnityEngine.Color;
-using static CustomGenerator.ExtConfig;
-using Facepunch;
-using System.Reflection;
-using HarmonyLib;
-using System.Drawing.Text;
 using Font = System.Drawing.Font;
 using Graphics = System.Drawing.Graphics;
-namespace CustomGenerator.Utility
-{
+using Debug = UnityEngine.Debug;
+
+using static CustomGenerator.ExtConfig;
+namespace CustomGenerator.Utility {
+    // я честно не ебу что тут понаписал, но работает
     static class MapImage
     {
         public static void RenderMap(TerrainTexturing _instance, float scale = 0.5f, int oceanMargin = 500) {
@@ -79,37 +79,23 @@ namespace CustomGenerator.Utility
                 _width = width;
                 _height = height;
             }
+
             public Bitmap ToBitmap()
             {
                 Bitmap bitmap = new Bitmap(_width, _height);
+
                 for (int y = 0; y < _height; y++)
                 {
                     for (int x = 0; x < _width; x++)
                     {
-                        System.Drawing.Color color = (System.Drawing.Color)(object)this[x, y];
-                        bitmap.SetPixel(x, y, color);
+                        Color color = (Color)(object)this[x, y];
+                        bitmap.SetPixel(x, y, color.ToSystemDrawingColor());
                     }
                 }
+
                 return bitmap;
             }
-            public static Array2D<Color> FromBitmap(Bitmap bitmap)
-            {
-                int width = bitmap.Width;
-                int height = bitmap.Height;
 
-                Color[] colors = new Color[width * height];
-
-                for (int y = 0; y < height; y++)
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        var px = bitmap.GetPixel(x, y);
-                        colors[y * width + x] = new Color(px.R, px.G, px.B);
-                    }
-                }
-
-                return new Array2D<Color>(colors, width, height);
-            }
             public bool IsEmpty()
             {
                 return _items == null || _width == 0 && _height == 0;
@@ -122,6 +108,22 @@ namespace CustomGenerator.Utility
 
         }
 
+        private class MapMonument
+        {
+            public string name;
+            public int x = 0;
+            public int y = 0;
+
+            public Indication indication = Indication.None;
+            public string imagePath = "";
+        }
+        enum Indication
+        {
+            None = 0,
+            Regular,
+            Smaller,
+            Image
+        }
         private static FieldInfo _monuments = AccessTools.TypeByName("TerrainPath").GetField("Monuments", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         private static void LoadIcons(ref Array2D<Color> output, TerrainTexturing _instance, int imageWidth, int imageHeight, int mapResolution, int oceanMargin)
         {
@@ -148,9 +150,12 @@ namespace CustomGenerator.Utility
                     output[originalMap + i, originalMap + j] = Color.cyan;
                 }
             }
+
+            List<MapMonument> mapMonuments = new List<MapMonument>();
             foreach (MonumentInfo monument in monuments)
             {
                 string name = GetMonumentName(monument);
+                
                 Vector3 position = monument.transform.position;
                 Debug.Log(name);
 
@@ -168,36 +173,116 @@ namespace CustomGenerator.Utility
                     }
                 }
 
-                RenderText(name, "PermanentMarker.ttf", 14, System.Drawing.Color.Black, output.ToBitmap(), x, z, out output);
+                //if (monument.Type == MonumentType.Town || monument.Type == MonumentType.Radtown || (monument.Type == MonumentType.Building && !name.Contains("Tunnel")) || monument.Type == MonumentType.Lighthouse || monument.Type == MonumentType.Roadside || monument.Type == MonumentType.Airport)
+                //    mapMonuments.Add(new MapMonument { name = name, x = x, y = z, indication = Indication.Regular });
+                //else
+                //    mapMonuments.Add(new MapMonument { name = name, x = x, y = z, indication = Indication.Smaller });
+                if (monument.Type == MonumentType.Town || monument.Type == MonumentType.Radtown || (monument.Type == MonumentType.Building && !name.Contains("Tunnel")) || monument.Type == MonumentType.Lighthouse || monument.Type == MonumentType.Roadside || monument.Type == MonumentType.Airport || monument.Type != MonumentType.WaterWell)
+                    RenderText(name, "PermanentMarker.ttf", 16, System.Drawing.Color.Black, ref output, x, z);
+                else
+                    RenderText(name, "PermanentMarker.ttf", 9, System.Drawing.Color.Black, ref output, x, z);
             }
-        }
 
-        public static void RenderText(string text, string fontPath, int fontSize, System.Drawing.Color color, System.Drawing.Bitmap output, int xx, int zz, out Array2D<Color> array)
+            //RenderText(mapMonuments, "PermanentMarker.ttf", ref output);
+            RenderGithub("PermanentMarker.ttf", ref output, mapResolution, imageWidth);
+        }
+        static int k = 0;
+        public static void RenderText(string text, string fontPath, int fontSize, System.Drawing.Color color, ref Array2D<Color> output, int xx, int zz)
         {
+            Bitmap bitmap = output.ToBitmap();
             PrivateFontCollection fontCollection = new PrivateFontCollection();
             fontCollection.AddFontFile(fontPath);
             Font font = new Font(fontCollection.Families[0], fontSize);
-            Graphics graphics = Graphics.FromImage(output);
-            SolidBrush brush = new SolidBrush(color);
-            graphics.DrawString(text, font, brush, xx, zz);
 
+            using (Graphics graphics = Graphics.FromImage(bitmap)) {
+                graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                using (SolidBrush brush = new SolidBrush(color)) {
+                    SizeF textSize = graphics.MeasureString(text, font);
+                    float textX = xx - (textSize.Width / 2);
+                    float textY = zz - (textSize.Height / 2);
 
-            int width = output.Width;
-            int height = output.Height;
+                    graphics.TranslateTransform(textX, textY);
+                    graphics.RotateTransform(180);
+                    graphics.ScaleTransform(-1, 1);
+                    graphics.DrawString(text, font, brush, 0, -textSize.Height);
+                }
+            }
 
-            Color[] colors = new Color[width * height];
+            bitmap.Save($"mapimages/1map{k}.png", ImageFormat.Png);
+            k++;
 
+            int width = bitmap.Width;
+            int height = bitmap.Height;
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    var px = output.GetPixel(x, y);
-                    colors[y * width + x] = new Color(px.R, px.G, px.B);
+                    var px = bitmap.GetPixel(x, y);
+                    output[x, y] = new UnityEngine.Color(
+                        Mathf.Clamp(px.R / 255f, 0f, 1f), 
+                        Mathf.Clamp(px.G / 255f, 0f, 1f), 
+                        Mathf.Clamp(px.B / 255f, 0f, 1f), 
+                        Mathf.Clamp(px.A / 255f, 0f, 1f)
+                    );
                 }
             }
-
-            array = new Array2D<Color>(colors, width, height);
         }
+
+        public static void RenderGithub(string fontPath, ref Array2D<Color> output, int mapResolution, int imageResolution) {
+            int x1 = (int)(((10 + (tempData.mapsize / 2.0)) / tempData.mapsize) * mapResolution);
+            int x2 = (int)(((imageResolution - 40 + (tempData.mapsize / 2.0)) / tempData.mapsize) * mapResolution);
+            int z = (int)(((imageResolution / 2 + (tempData.mapsize / 2.0)) / tempData.mapsize) * mapResolution);
+            var color = System.Drawing.Color.WhiteSmoke;
+
+            RenderText("HarmonyCustomGenerator", fontPath, 16, color, ref output, x1, z);
+            RenderText("github.com/hammzat/HarmonyCustomGenerator", fontPath, 16, color, ref output, x2, z);
+        }
+        //public static void RenderText(List<MapMonument> monuments, string fontPath, ref Array2D<Color> output)
+        //{
+        //    Bitmap bitmap = output.ToBitmap();
+        //    PrivateFontCollection fontCollection = new PrivateFontCollection();
+        //    fontCollection.AddFontFile(fontPath);
+        //    Font font = new Font(fontCollection.Families[0], fontSize);
+
+        //    using (Graphics graphics = Graphics.FromImage(bitmap)) {
+        //        graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+        //        using (SolidBrush brush = new SolidBrush(color)) {
+        //            SizeF textSize = graphics.MeasureString(text, font);
+        //            float textX = xx - (textSize.Width / 2);
+        //            float textY = zz - (textSize.Height / 2);
+
+        //            //graphics.TranslateTransform(textX + textSize.Width / 2, textY + textSize.Height / 2);
+        //            //graphics.RotateTransform(180);
+        //            //graphics.DrawString(text, font, brush, -(textX), -(textY)));
+
+        //            graphics.DrawString(text, font, brush, textX, textY);
+        //            if (!once)
+        //            {
+        //                graphics.DrawString("CORNER", font, brush, 2, 2);
+        //                once = true;
+        //            }
+        //        }
+        //    }
+
+        //    bitmap.Save($"mapimages/1map{k}.png", ImageFormat.Png);
+        //    k++;
+
+        //    int width = bitmap.Width;
+        //    int height = bitmap.Height;
+        //    for (int y = 0; y < height; y++)
+        //    {
+        //        for (int x = 0; x < width; x++)
+        //        {
+        //            var px = bitmap.GetPixel(x, y);
+        //            output[x, y] = new UnityEngine.Color(
+        //                Mathf.Clamp(px.R / 255f, 0f, 1f),
+        //                Mathf.Clamp(px.G / 255f, 0f, 1f),
+        //                Mathf.Clamp(px.B / 255f, 0f, 1f),
+        //                Mathf.Clamp(px.A / 255f, 0f, 1f)
+        //            );
+        //        }
+        //    }
+        //}
 
         public static byte[] Render(TerrainTexturing _instance, out int imageWidth, out int imageHeight, out Color background, float scale = 0.5f, bool lossy = true, bool transparent = false, int oceanMargin = 500)
         {
@@ -301,6 +386,18 @@ namespace CustomGenerator.Utility
             }
 
             return name;
+        }
+    }
+    public static class ColorExtensions
+    {
+        public static System.Drawing.Color ToSystemDrawingColor(this Color unityColor)
+        {
+            return System.Drawing.Color.FromArgb(
+                Mathf.Clamp(Mathf.FloorToInt(unityColor.a * 255), 0, 255),
+                Mathf.Clamp(Mathf.FloorToInt(unityColor.r * 255), 0, 255),
+                Mathf.Clamp(Mathf.FloorToInt(unityColor.g * 255), 0, 255),
+                Mathf.Clamp(Mathf.FloorToInt(unityColor.b * 255), 0, 255)
+            );
         }
     }
 }

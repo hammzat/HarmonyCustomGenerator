@@ -23,9 +23,7 @@ namespace CustomGenerator.Patches {
             tempData.terrainPath = (TerrainPath)_terrainPath.GetValue(__instance);
 
             if (tempData.terrainPath == null || tempData.terrainTexturing == null || tempData.terrainMeta == null)
-            {
-                Debug.Log("[CGen] PIZDEC!");
-            }
+                Debug.Log("[CGen] One of components is null!");
             Debug.Log("[CGen] Saved TerrainTexturing instance!");
         }
     }
