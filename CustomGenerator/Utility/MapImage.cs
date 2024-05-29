@@ -164,9 +164,9 @@ namespace CustomGenerator.Utility {
                 int x = (int)(((position.x + (tempData.mapsize / 2.0)) / tempData.mapsize) * mapResolution) + originalMapOffset;
                 int z = (int)(((position.z + (tempData.mapsize / 2.0)) / tempData.mapsize) * mapResolution) + originalMapOffset;
 
-                if (name.Contains("Tunnel")) { mapMonuments.Add(new MapMonument { name = name, x = x, y = z, indication = Indication.Image }); continue; }
+                if (name.ToLower().Contains("train")) { mapMonuments.Add(new MapMonument { name = name, x = x, y = z, indication = Indication.Image }); continue; } //
 
-                if (monument.Type == MonumentType.Town || monument.Type == MonumentType.Radtown || monument.Type == MonumentType.Building || monument.Type == MonumentType.Lighthouse || monument.Type == MonumentType.Roadside || monument.Type == MonumentType.Airport)
+                if (monument.shouldDisplayOnMap && monument.mapIcon == null)
                     mapMonuments.Add(new MapMonument { name = name, x = x, y = z, indication = Indication.Regular });
                 else
                     mapMonuments.Add(new MapMonument { name = name, x = x, y = z, indication = Indication.None });
@@ -175,7 +175,7 @@ namespace CustomGenerator.Utility {
             }
 
             RenderText(mapMonuments, PermanentMarkerFont, ref output);
-            RenderGithub(PermanentMarkerFont, ref output, mapResolution, imageWidth);
+            //RenderGithub(PermanentMarkerFont, ref output, mapResolution, imageWidth);
         }
         private static void RenderDebug(ref Array2D<Color> output, int imageRes, int originalMapOffset, int originalMap) {
             for (int i = 0; i < 20; i++)
@@ -254,6 +254,7 @@ namespace CustomGenerator.Utility {
             fontCollection.AddFontFile(fontPath);
             foreach (MapMonument monument in monuments) {
                 if (monument.indication == Indication.None) continue;
+                if (monument.indication == Indication.Image) continue; // TODO
 
                 var x = monument.x;
                 var y = monument.y;
