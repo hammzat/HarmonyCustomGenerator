@@ -12,7 +12,7 @@ namespace CustomGenerator
 
         public class ConfigData {
             [JsonProperty("Skip Asset Warmup")]
-            public bool SkipAssetWarmup = false;
+            public bool SkipAssetWarmup = true;
 
             [JsonProperty("Map Settings")]
             public MapSettings mapSettings = new MapSettings();
