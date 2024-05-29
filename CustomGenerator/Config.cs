@@ -8,7 +8,7 @@ namespace CustomGenerator
         public static ConfigData Config;
         public static TempData tempData;
         private static readonly string Location = Path.Combine("HarmonyConfig", "CustomGeneratorCFG.json");
-        private static string CurrentVersion = "0.0.2";
+        private static string CurrentVersion = "0.0.3";
 
         public class ConfigData {
             [JsonProperty("Skip Asset Warmup")]

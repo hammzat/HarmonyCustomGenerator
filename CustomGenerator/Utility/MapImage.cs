@@ -20,7 +20,7 @@ namespace CustomGenerator.Utility {
     static class MapImage
     {
         private static Dictionary<string, string> RequirementResources = new Dictionary<string, string>() {
-            {"PermanentMarker.ttf", ""},
+            {"PermanentMarker.ttf", "https://raw.githubusercontent.com/hammzat/HarmonyCustomGenerator/main/Resources/PermanentMarker.ttf"},
         };
         private static void CheckResources() {
             if (!Directory.Exists("mapimages")) Directory.CreateDirectory("mapimages");
