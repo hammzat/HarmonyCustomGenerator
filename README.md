@@ -7,7 +7,7 @@ Allows you to generate semi-custom maps on default rust generator.
  ## Features
 
 1. QoL
-- [ ] Skip Asset Warmup on start
+- [x] Skip Asset Warmup on start
 
 2. Map Settings
 - [x] Generate map over default limits
@@ -24,11 +24,11 @@ Allows you to generate semi-custom maps on default rust generator.
 - [ ] Replace the generated monuments with your custom ones.
     > For example: switch vanilla outpost to custom generated.
 
-2. Map Image Generator
+3. Map Image Generator
    > Stolen from original Rust
 - [x] Generate splat/height map.
-- [ ] Generate monument names.
-
+- [x] Generate monument names.
+- [ ] Generate metro icons.
 
 > Don't generate maps larger than 6000!  
 > Rust client won't be able to process them and will just display as a 6000 map with flying prefabs and monuments
@@ -36,11 +36,10 @@ Allows you to generate semi-custom maps on default rust generator.
 Configure all features at `HarmonyConfig/CustomGeneratorCFG.json`
 
 ------
-### Support
-For support DM me on discord - aristocratos
 ### Authors and Credits
 - [@aristocratos](https://github.com/hammzat)
-
+  - For support DM me on discord - aristocratos
+ 
 Thanks to:
 - bmgjet
 - I4IgO Kurasaki
