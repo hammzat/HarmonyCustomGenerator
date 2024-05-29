@@ -11,8 +11,9 @@ namespace CustomGenerator
         private static string CurrentVersion = "0.0.2";
 
         public class ConfigData {
-            [JsonProperty("Skip Asset Warmup (useless at this time)")]
-            public bool SkipAssetWarmup = false; // useless at this time
+            [JsonProperty("Skip Asset Warmup")]
+            public bool SkipAssetWarmup = false;
+
             [JsonProperty("Map Settings")]
             public MapSettings mapSettings = new MapSettings();
 
