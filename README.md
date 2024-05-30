@@ -28,6 +28,7 @@ Allows you to generate semi-custom maps on default rust generator.
    > Stolen from original Rust
 - [x] Generate splat/height map.
 - [x] Generate monument names.
+- [ ] Generate map grid.
 - [ ] Generate metro icons.
 
 > Don't generate maps larger than 6000!  
