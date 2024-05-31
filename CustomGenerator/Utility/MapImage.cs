@@ -264,9 +264,11 @@ namespace CustomGenerator.Utility {
 
                 Font font = new Font(fontCollection.Families[0], fontSize);
 
-                using (Graphics graphics = Graphics.FromImage(bitmap) {
+                using (Graphics graphics = Graphics.FromImage(bitmap))
+                {
                     graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                    using (SolidBrush brush = new SolidBrush(color)) {
+                    using (SolidBrush brush = new SolidBrush(color))
+                    {
                         SizeF textSize = graphics.MeasureString(text, font);
                         float textX = x - (textSize.Width / 2);
                         float textY = y - (textSize.Height / 2);

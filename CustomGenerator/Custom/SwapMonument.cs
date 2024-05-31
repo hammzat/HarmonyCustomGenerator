@@ -17,21 +17,38 @@ public class SwapMonument {
     
     public static void Initiate(string mapPath) {
         _mainMap.Load(mapPath);
+
         Log(_mainMap.world.prefabs.Count);
 
         LoadMonuments();
-        _mainMap.world.prefabs.Where(x => );
-        foreach (Monument monument in monuments) {
-            Log(monument.prefabShortname.ToString());
-            Log(monument.path);
-            _swapMap.Load(monument.path);
-            _mainMap.world.prefabs.AddRange(
-                MapHander.CreatePrefabFromMap(_swapMap.world.prefabs)
-            );
-        }
-        
+        SwapMonuments();
+
+
         _mainMap.Save(mapPath);
     }
+
+    private static void SwapMonuments() {
+        foreach (Monument monument in monuments)
+        {
+            var matchPrefabs = _mainMap.world.prefabs.Where(x => StringPool.Get(x.id).Contains(monument.prefabShortname));
+            
+            // debug
+            Log(monument.prefabShortname.ToString());
+            Log(monument.path);
+            Log(matchPrefabs.Count());
+            // debug
+
+            if (matchPrefabs.Count() == 0) continue;
+            var firstfab = matchPrefabs.FirstOrDefault();
+            Log(firstfab.position);
+
+            _swapMap.Load(monument.path);
+            _mainMap.world.prefabs.AddRange(
+                MapHander.CreatePrefabFromMap(firstfab.position, firstfab.rotation, _swapMap.world.prefabs)
+            );
+        }
+    }
+
     private static void LoadMonuments() {
         if (!Directory.Exists("maps/prefabs")) Directory.CreateDirectory("maps/prefabs");
 
@@ -57,6 +74,8 @@ public class SwapMonument {
     static void Log(object obj) => Debug.Log("[SWAP MONUMENT] " + obj);
 }
 
+
+// from Roguelike Generator
 public class MapHander
 {
     private static PrefabData CreatePrefab(uint PrefabID, VectorData posistion, VectorData rotation, string category = ":\\test black:1:")
@@ -92,24 +111,34 @@ public class MapHander
         return nextSize;
     }
 
-    public static List<PrefabData> CreatePrefabFromMap(List<PrefabData> prefabs, int col = 1, int row = 1, string category = "Monument")
+    public static List<PrefabData> CreatePrefabFromMap(VectorData startPos, VectorData rotation, List<PrefabData> prefabs)
     {
         List<PrefabData> createdPrefabs = new List<PrefabData>();
         bool first = true;
         VectorData position = new VectorData(20, 100, 0);
-        VectorData startPos = new VectorData(0, 100, 0);
 
         foreach (var prefab in prefabs) {
             if (first) {
                 first = false;
-                position = CalculateGlobalPosition(startPos, col, row, prefab.scale, 1);
+                position = CalculateGlobalPosition(startPos, 1, 1, prefab.scale, 1);
+
+                createdPrefabs.Add(
+                    CreatePrefab(
+                        prefab.id,
+                        Calculate(position, prefab.position, prefab.scale, 1, 1, 1),
+                        rotation,
+                        "Monument"
+                ));
+
+                continue;
             }
+
             createdPrefabs.Add(
                 CreatePrefab(
                     prefab.id,
-                    Calculate(position, prefab.position, prefab.scale, 1, col, row),
+                    Calculate(position, prefab.position, prefab.scale, 1, 1, 1),
                     prefab.rotation,
-                    category
+                    "Monument"
             ));
         }
         return createdPrefabs;
