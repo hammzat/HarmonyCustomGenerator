@@ -246,6 +246,7 @@ namespace CustomGenerator.Utility {
                 RenderText(text, fontPath, 14, color, ref output, x, y);
             }
         }
+
         private static void RenderText(List<MapMonument> monuments, string fontPath, ref Array2D<Color> output) {
             var color = System.Drawing.Color.Black;
 

@@ -6,6 +6,7 @@ using System;
 
 using static CustomGenerator.ExtConfig;
 using System.Collections.Generic;
+using System.IO;
 namespace CustomGenerator.Patches {
     [HarmonyPatch]
     internal static class TerrainMeta_Init
@@ -35,9 +36,12 @@ namespace CustomGenerator.Patches {
             if (tempData.terrainTexturing == null || strType != "DONE")  return;
 
             Debug.Log($"SIZE: {tempData.mapsize} | SEED: {tempData.mapseed}");
+
+            SwapMonument.Initiate(Path.GetFullPath("maps") + "\\" + string.Format(Config.mapSettings.MapName, tempData.mapsize, tempData.mapseed) + (!Config.mapSettings.MapName.EndsWith(".map") ? ".map" : ""));
+            tempData.mapGenerated = true;
+
             MapImage.RenderMap(tempData.terrainTexturing, 0.75f, 150);
 
-            tempData.mapGenerated = true;
             //Rust.Application.Quit();
             Application.Quit();
             return;
