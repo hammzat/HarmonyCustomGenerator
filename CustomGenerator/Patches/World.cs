@@ -62,6 +62,38 @@ namespace CustomGenerator.Generators
             CheckConfig();
             if (!Config.mapSettings.GenerateNewMapEverytime) return;
             __result = false;
+
+            if (Config.Generator.ModifyPercentages) LoadPercentages();
+        }
+
+        static void LoadPercentages()
+        {
+            float sum1 = Config.Generator.Tier.Tier0 + Config.Generator.Tier.Tier1 + Config.Generator.Tier.Tier2;
+            if (sum1 >= 100f) {
+                World.Config.PercentageTier0 = Config.Generator.Tier.Tier0 / sum1;
+                World.Config.PercentageTier1 = Config.Generator.Tier.Tier1 / sum1;
+                World.Config.PercentageTier2 = Config.Generator.Tier.Tier2 / sum1;
+            }
+            else {
+                Debug.Log("Tier perc. summs lower than 100! Set default.");
+                World.Config.PercentageTier0 = 0.3f;
+                World.Config.PercentageTier1 = 0.3f;
+                World.Config.PercentageTier2 = 0.4f;
+            }
+            float sum2 = Config.Generator.Biom.Arid + Config.Generator.Biom.Arctic + Config.Generator.Biom.Temperate + Config.Generator.Biom.Tundra;
+            if (sum2 >= 100f) {
+                World.Config.PercentageBiomeArid = Config.Generator.Biom.Arid / sum2;
+                World.Config.PercentageBiomeArctic = Config.Generator.Biom.Arctic / sum2;
+                World.Config.PercentageBiomeTemperate = Config.Generator.Biom.Temperate / sum2;
+                World.Config.PercentageBiomeTundra = Config.Generator.Biom.Tundra / sum2;
+            }
+            else {
+                Debug.Log("Biom perc. summs lower than 100! Set default.");
+                World.Config.PercentageBiomeArctic = 0.3f;
+                World.Config.PercentageBiomeArid = 0.4f;
+                World.Config.PercentageBiomeTundra = 0.15f;
+                World.Config.PercentageBiomeTemperate = 0.15f;
+            }
         }
     }
 

@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System.IO;
 using UnityEngine;
-using static CustomGenerator.ExtConfig;
 
 namespace CustomGenerator
 {
@@ -45,10 +44,12 @@ namespace CustomGenerator
             public SimplePath Road = new SimplePath();
             public SimplePath Rail = new SimplePath();
 
-            //[JsonProperty("Tier Percentages (100 in total)")]
-            //public TierSettings Tier = new TierSettings();
-            //[JsonProperty("Bioms Percentages (100 in total)")]
-            //public BiomSettings Biom = new BiomSettings();
+            [JsonProperty(EN ? "Change percentages" : "Изменить проценты")]
+            public bool ModifyPercentages = false;
+            [JsonProperty(EN ? "Tier Percentages (100 in total)" : "Проценты Тиров (всего 100)")]
+            public TierSettings Tier = new TierSettings();
+            [JsonProperty(EN ? "Bioms Percentages (100 in total)" : "Проценты Биомов (всего 100)")]
+            public BiomSettings Biom = new BiomSettings();
 
             //[JsonProperty("Remove large powerlines")]
             //public bool RemovePowerlines = false;
