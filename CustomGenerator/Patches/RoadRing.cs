@@ -14,6 +14,7 @@ namespace CustomGenerator.Generators {
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(GenerateRoadRing), "Process"); }
         private static AccessTools.FieldRef<GenerateRoadRing, int> MinSize = AccessTools.FieldRefAccess<GenerateRoadRing, int>("MinWorldSize");
         private static void Prefix(GenerateRoadRing __instance, ref int seed) {
+            CheckConfig();
             if (!Config.Generator.Road.Enabled) {
                 MinSize(__instance) = int.MaxValue;
                 Debug.Log($"[CGen - ROAD] MinWorldSize changed to max! Dont generate!");
@@ -26,6 +27,7 @@ namespace CustomGenerator.Generators {
 
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
             List<CodeInstruction> list = instructions.ToList();
+            CheckConfig();
             if (!Config.Generator.Road.GenerateRing) return list;
 
             for (int i = 0; i < list.Count; i++)
@@ -51,6 +53,7 @@ namespace CustomGenerator.Generators {
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(PlaceMonumentsRoadside), "Process"); }
         private static AccessTools.FieldRef<PlaceMonumentsRoadside, int> MinSize = AccessTools.FieldRefAccess<PlaceMonumentsRoadside, int>("MinWorldSize");
         private static void Prefix(PlaceMonumentsRoadside __instance, ref int seed) {
+            CheckConfig();
             if (Config.Generator.Road.GenerateSideMonuments) return;
 
             MinSize(__instance) = 99999;

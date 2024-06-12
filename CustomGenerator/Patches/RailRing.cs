@@ -14,6 +14,7 @@ namespace CustomGenerator.Generators
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(GenerateRailRing), "Process"); }
         private static AccessTools.FieldRef<GenerateRailRing, int> MinSize = AccessTools.FieldRefAccess<GenerateRailRing, int>("MinWorldSize");
         private static void Prefix(GenerateRailRing __instance, ref int seed) {
+            CheckConfig();
             if (!Config.Generator.Rail.Enabled) {
                 MinSize(__instance) = int.MaxValue;
                 Debug.Log($"[CGen - RAIL] MinWorldSize changed to max!");
@@ -25,6 +26,7 @@ namespace CustomGenerator.Generators
         }
 
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
+            CheckConfig();
             List<CodeInstruction> list = instructions.ToList();
             if (!Config.Generator.Rail.GenerateRing) return list;
 

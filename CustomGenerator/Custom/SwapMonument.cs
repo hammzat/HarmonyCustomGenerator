@@ -1,15 +1,11 @@
-﻿using CompanionServer.Handlers;
-using ProtoBuf;
-using Rust.Ai;
+﻿using ProtoBuf;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
-using static ProtoBuf.AppMap;
 
+using static CustomGenerator.ExtConfig;
 public class SwapMonument {
     private static WorldSerialization _mainMap = new WorldSerialization();
     private static WorldSerialization _swapMap = new WorldSerialization();
@@ -19,34 +15,32 @@ public class SwapMonument {
         _mainMap.Load(mapPath);
 
         Log(_mainMap.world.prefabs.Count);
-
         LoadMonuments();
         SwapMonuments();
 
-
+        if (Config.Swap.SaveBothMaps) mapPath.Replace(".map", ".swap.map");
         _mainMap.Save(mapPath);
     }
 
     private static void SwapMonuments() {
-        foreach (Monument monument in monuments)
-        {
+        foreach (Monument monument in monuments) {
             var matchPrefabs = _mainMap.world.prefabs.Where(x => StringPool.Get(x.id).Contains(monument.prefabShortname));
-            
+
             // debug
+            Log("-----");
             Log(monument.prefabShortname.ToString());
             Log(monument.path);
             Log(matchPrefabs.Count());
             // debug
 
             if (matchPrefabs.Count() == 0) continue;
-            var firstfab = matchPrefabs.FirstOrDefault();
-            Log(firstfab.position.ToString());
-
-            _swapMap.Load(monument.path);
-            _mainMap.world.prefabs.Remove(firstfab);
-            _mainMap.world.prefabs.AddRange(
-                MapHander.CreatePrefabFromMap(firstfab.position, firstfab.rotation, _swapMap.world.prefabs)
-            );
+            foreach (var firstfab in matchPrefabs) {
+                _swapMap.Load(monument.path);
+                _mainMap.world.prefabs.Remove(firstfab);
+                _mainMap.world.prefabs.AddRange(
+                    MapHander.CreatePrefabFromMap(firstfab.position, firstfab.rotation, _swapMap.world.prefabs)
+                );
+            }
         }
     }
 
@@ -72,7 +66,7 @@ public class SwapMonument {
         }
     }
 
-    static void Log(object obj) => Debug.Log("[SWAP MONUMENT] " + obj);
+    static void Log(object obj) => Debug.Log("[SWAP MN] " + obj);
 }
 
 
@@ -126,6 +120,11 @@ public class MapHander
         bool first = true;
 
         foreach (var prefab in prefabs) {
+            if (prefab.id == 2749405185){
+                prefab.id = 504351302;
+                prefab.scale = new VectorData(0, 0, 0);
+                Debug.Log("[SWAP] Replacing spawnpoint with black cube...");
+            }
             createdPrefabs.Add(
                 CreatePrefab(
                     prefab.id,
