@@ -44,3 +44,4 @@ Configure all features at `HarmonyConfig/CustomGeneratorCFG.json`
 Thanks to:
 - bmgjet
 - I4IgO Kurasaki
+- FlySelf (rustmaps custom prefabs)
