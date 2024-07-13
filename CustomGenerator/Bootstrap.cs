@@ -1,5 +1,4 @@
 using HarmonyLib;
-using System.Reflection;
 using UnityEngine;
 
 using static CustomGenerator.ExtConfig;
@@ -11,7 +10,7 @@ namespace CustomGenerator {
             CheckConfig();
 
             Debug.Log($"CustomGenerator by [aristocratos]");
-            Debug.Log(new string('-', 30) + $"\nUSE ONLY FOR MAP GENERATING! \nDONT USE ON LIVE SERVER!!! \nConfig version: {Config.Version} \n" + new string('-', 30));
+            Debug.Log(new string('-', 30) + $"\nUSE ONLY FOR MAP GENERATING! \nNOT FOR LIVE SERVER!!! \nConfig version: {Config.Version} \n" + new string('-', 30));
              
             if (Config.SkipAssetWarmup) {
                 ConVar.Global.skipAssetWarmup_crashes = true;

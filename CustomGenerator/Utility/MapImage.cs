@@ -175,7 +175,7 @@ namespace CustomGenerator.Utility {
             }
 
             RenderText(mapMonuments, PermanentMarkerFont, ref output);
-            //RenderGithub(PermanentMarkerFont, ref output, mapResolution, imageWidth);
+            RenderGithub(PermanentMarkerFont, ref output, mapResolution, imageWidth);
         }
         private static void RenderDebug(ref Array2D<Color> output, int imageRes, int originalMapOffset, int originalMap) {
             for (int i = 0; i < 20; i++)
@@ -240,7 +240,7 @@ namespace CustomGenerator.Utility {
                 int textWidth = (int)textSize.Width;
                 int textHeight = (int)textSize.Height;
 
-                int x = (imageResolution - textWidth) / 2;
+                int x = (imageResolution / 2 ) - (textWidth / 2);
                 int y = imageResolution - textHeight;
 
                 RenderText(text, fontPath, 14, color, ref output, x, y);

@@ -3,10 +3,9 @@ using System.Reflection;
 using CustomGenerator.Utility;
 using UnityEngine;
 using System;
+using System.IO;
 
 using static CustomGenerator.ExtConfig;
-using System.Collections.Generic;
-using System.IO;
 namespace CustomGenerator.Patches {
     [HarmonyPatch]
     internal static class TerrainMeta_Init
@@ -43,7 +42,6 @@ namespace CustomGenerator.Patches {
 
                 SwapMonument.Initiate(path);
             }
-            tempData.mapGenerated = true;
 
             MapImage.RenderMap(tempData.terrainTexturing, 0.75f, 150);
 

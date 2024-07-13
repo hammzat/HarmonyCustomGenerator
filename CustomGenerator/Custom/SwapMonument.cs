@@ -10,21 +10,23 @@ public class SwapMonument {
     private static WorldSerialization _mainMap = new WorldSerialization();
     private static WorldSerialization _swapMap = new WorldSerialization();
     private static List<Monument> monuments = new List<Monument>();
-    
-    public static void Initiate(string mapPath) {
+    private static string mapPath = string.Empty;
+
+    public static void Initiate(string path) {
+        mapPath = path;
         _mainMap.Load(mapPath);
 
         Log(_mainMap.world.prefabs.Count);
         LoadMonuments();
         SwapMonuments();
 
-        if (Config.Swap.SaveBothMaps) mapPath.Replace(".map", ".swap.map");
+        if (Config.Swap.SaveBothMaps) mapPath.Replace(".map", ".swapped.map");
         _mainMap.Save(mapPath);
     }
 
     private static void SwapMonuments() {
         foreach (Monument monument in monuments) {
-            var matchPrefabs = _mainMap.world.prefabs.Where(x => StringPool.Get(x.id).Contains(monument.prefabShortname));
+            var matchPrefabs = _mainMap.world.prefabs.Where(x => StringPool.Get(x.id).Contains(monument.prefabShortname)).ToList();
 
             // debug
             Log("-----");
@@ -118,19 +120,13 @@ public class MapHander
     {
         List<PrefabData> createdPrefabs = new List<PrefabData>();
         bool first = true;
-
         foreach (var prefab in prefabs) {
-            if (prefab.id == 2749405185){
-                prefab.id = 504351302;
-                prefab.scale = new VectorData(0, 0, 0);
-                Debug.Log("[SWAP] Replacing spawnpoint with black cube...");
-            }
             createdPrefabs.Add(
                 CreatePrefab(
-                    prefab.id,
+                    (prefab.id == 2749405185u) ? 504351302u : prefab.id,
                     Calculate(startPos, prefab.position, prefab.scale, prefabs, rotation),
                     first ? rotation : CalculateRot(rotation, prefab.rotation),
-                    prefab.scale,
+                    (prefab.id == 2749405185u) ? new VectorData(0, 0, 0) : prefab.scale,
                     "Monument"
             ));
             first = false;

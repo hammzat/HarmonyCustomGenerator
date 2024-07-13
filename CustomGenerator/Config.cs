@@ -11,7 +11,7 @@ namespace CustomGenerator
         public const bool EN = true;
         public static ConfigData Config;
         public static TempData tempData;
-        private static string CurrentVersion = "0.0.5";
+        private static string CurrentVersion = "0.0.6";
 
         private static readonly string Location = Path.Combine("HarmonyConfig", "CustomGeneratorCFG.json");
 
@@ -56,6 +56,8 @@ namespace CustomGenerator
             public bool RemoveRivers = false;
             //[JsonProperty("Remove large powerlines")]
             //public bool RemovePowerlines = false;
+            [JsonProperty(EN ? "Remove tunnel entrances" : "Удалить входы в туннели")]
+            public bool RemoveTunnelsEntrances = false;
             //[JsonProperty("Remove underground tunnels")]
             //public bool RemoveTunnels = false;
 
