@@ -11,7 +11,7 @@ namespace CustomGenerator
         public const bool EN = true;
         public static ConfigData Config;
         public static TempData tempData;
-        private static string CurrentVersion = "0.0.6";
+        private static string CurrentVersion = "0.0.7";
 
         private static readonly string Location = Path.Combine("HarmonyConfig", "CustomGeneratorCFG.json");
 
@@ -49,6 +49,7 @@ namespace CustomGenerator
         public class GeneratorSettings {
             public SimplePath Road = new SimplePath();
             public SimplePath Rail = new SimplePath();
+            public UniqueEnviroment UniqueEnviroment = new UniqueEnviroment();
 
             [JsonProperty(EN ? "Remove Car Wrecks" : "Удалить разбитые префабы машин около дороги")]
             public bool RemoveCarWrecks = false;
@@ -58,6 +59,7 @@ namespace CustomGenerator
             //public bool RemovePowerlines = false;
             [JsonProperty(EN ? "Remove tunnel entrances" : "Удалить входы в туннели")]
             public bool RemoveTunnelsEntrances = false;
+
             //[JsonProperty("Remove underground tunnels")]
             //public bool RemoveTunnels = false;
 
@@ -134,6 +136,11 @@ namespace CustomGenerator
             public bool GenerateRing = true;
             public bool GenerateSideMonuments = true;
             public bool GenerateSideObjects = false;
+        }
+        public class UniqueEnviroment {
+            public bool ShouldChange = true;
+            public bool GenerateOasis = true;
+            public bool GenerateCanyons = true;
         }
 
         public class TierSettings {

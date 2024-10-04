@@ -233,14 +233,14 @@ namespace CustomGenerator.Utility {
 
         private static void RenderGithub(string fontPath, ref Array2D<Color> output, int mapResolution, int imageResolution) {
             var color = System.Drawing.Color.WhiteSmoke;
-            var text = "github.com/hammzat/HarmonyCustomGenerator";
+            var text = "github.com/hammzat/HarmonyCustomGenerator - Canyons Update";
 
             using (Font font = new Font(fontPath, 14)) {
                 SizeF textSize = Graphics.FromImage(new Bitmap(1, 1)).MeasureString(text, font);
                 int textWidth = (int)textSize.Width;
                 int textHeight = (int)textSize.Height;
 
-                int x = (imageResolution / 2 ) - (textWidth / 2);
+                int x = (imageResolution / 2 ) - textWidth;
                 int y = imageResolution - textHeight;
 
                 RenderText(text, fontPath, 14, color, ref output, x, y);

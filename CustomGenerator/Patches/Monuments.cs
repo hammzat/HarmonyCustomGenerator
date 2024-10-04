@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 using static CustomGenerator.ExtConfig;
@@ -26,9 +27,30 @@ namespace CustomGenerator.Generators
             {
                 Debug.Log("[CGen] Tunnel Entrances off");
                 MinWorldSize(__instance) = 999999;
-                return false;
+                //return false;
             }
-
+            if (Config.Generator.UniqueEnviroment.ShouldChange && __instance.ResourceFolder.Contains("unique_environment/"))
+            {
+                switch (__instance.ResourceFolder.Replace("unique_environment/", ""))
+                {
+                    case "oasis":
+                        {
+                            Debug.Log($"[UNIQUE ENVIROMENT] Changing generating oasis to {Config.Generator.UniqueEnviroment.GenerateOasis}");
+                            if (Config.Generator.UniqueEnviroment.GenerateOasis) MinWorldSize(__instance) = 0;
+                            else MinWorldSize(__instance) = 999999;
+                            break;
+                        }
+                    case "canyon":
+                        {
+                            Debug.Log($"[UNIQUE ENVIROMENT] Changing generating canyon to {Config.Generator.UniqueEnviroment.GenerateCanyons}");
+                            if (Config.Generator.UniqueEnviroment.GenerateCanyons) MinWorldSize(__instance) = 0;
+                            else MinWorldSize(__instance) = 999999;
+                            break;
+                        }
+                    default: 
+                        break;
+                }
+            }
             if (!Config.Monuments.Enabled) return true;
             Debug.Log("[CGen] PlaceMonuments.");
 

@@ -19,6 +19,7 @@ namespace CustomGenerator {
 
             Rust.Ai.AiManager.nav_disable = true;
             Rust.Ai.AiManager.nav_wait = false;
+            if (Config.Generator.RemoveRivers) World.Config.Rivers = false;
         }
     }
 }
