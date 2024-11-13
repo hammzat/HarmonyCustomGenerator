@@ -11,7 +11,7 @@ namespace CustomGenerator
         public const bool EN = true;
         public static ConfigData Config;
         public static TempData tempData;
-        private static string CurrentVersion = "0.0.7";
+        private static string CurrentVersion = "0.0.71";
 
         private static readonly string Location = Path.Combine("HarmonyConfig", "CustomGeneratorCFG.json");
 
@@ -38,7 +38,7 @@ namespace CustomGenerator
             public bool GenerateNewMapEverytime = true;
             [JsonProperty(EN ? "Override Map Sizes (9000 not be changed to 6000)" : "Принудительный размер карты (карта 9000 не сменится на 6000)")]
             public bool OverrideSizes = true;
-            [JsonProperty(EN ? "Override Map Folder (saves to <Server Root>/maps/)" : "Перезаписать папку с картой")]
+            [JsonProperty(EN ? "Override Map Folder (saves to <Server Root>/maps/)" : "Перезаписать папку с картой (<папка сервера>/maps/)")]
             public bool OverrideFolder = true;
             [JsonProperty(EN ? "Override Map Name" : "Перезаписать название карты")]
             public bool OverrideName = true;
@@ -141,6 +141,7 @@ namespace CustomGenerator
             public bool ShouldChange = true;
             public bool GenerateOasis = true;
             public bool GenerateCanyons = true;
+            public bool GenerateLakes = true;
         }
 
         public class TierSettings {

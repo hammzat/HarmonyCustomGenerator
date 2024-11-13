@@ -29,10 +29,10 @@ public class SwapMonument {
             var matchPrefabs = _mainMap.world.prefabs.Where(x => StringPool.Get(x.id).Contains(monument.prefabShortname)).ToList();
 
             // debug
-            Log("-----");
+            /*Log("-----");
             Log(monument.prefabShortname.ToString());
             Log(monument.path);
-            Log(matchPrefabs.Count());
+            Log(matchPrefabs.Count());*/
             // debug
 
             if (matchPrefabs.Count() == 0) continue;
@@ -127,7 +127,7 @@ public class MapHander
                     Calculate(startPos, prefab.position, prefab.scale, prefabs, rotation),
                     first ? rotation : CalculateRot(rotation, prefab.rotation),
                     (prefab.id == 2749405185u) ? new VectorData(0, 0, 0) : prefab.scale,
-                    "Monument"
+                    prefab.category
             ));
             first = false;
         }

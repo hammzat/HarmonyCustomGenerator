@@ -47,6 +47,13 @@ namespace CustomGenerator.Generators
                             else MinWorldSize(__instance) = 999999;
                             break;
                         }
+                    case "lake":
+                        {
+                            Debug.Log($"[UNIQUE ENVIROMENT] Changing generating lake to {Config.Generator.UniqueEnviroment.GenerateLakes}");
+                            if (Config.Generator.UniqueEnviroment.GenerateLakes) MinWorldSize(__instance) = 0;
+                            else MinWorldSize(__instance) = 999999;
+                            break;
+                        }
                     default: 
                         break;
                 }
