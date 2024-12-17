@@ -50,12 +50,11 @@ Allows you to generate semi-custom maps on default Rust generator.
 - [x] Save both map versions (with and without swaps)
 - [x] Russian and English language support in configuration
 
-### Monument Swapping Setup
-To use the Monument Swapping feature:
-  Place your custom monument prefabs in the `maps/prefabs` folder
-  Supported formats: `.prefab`
-  Name format: `monument_original_path.prefab` (e.g. `fishing_village_c.prefab`)
-  
+### Monument Swapping Setup  
+To use the Monument Swapping feature:  
+  Place your custom monument prefabs in the `maps/prefabs` folder  
+  Supported format: `.prefab`  
+  Name format: `monument_original_path.prefab` (e.g. `fishing_village_c.prefab`)  
   - Requirements:
     - Monument size should match the vanilla
     - Ensure proper terrain alignment in the prefab
