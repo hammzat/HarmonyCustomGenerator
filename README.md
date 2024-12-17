@@ -56,7 +56,7 @@ To use the Monument Swapping feature:
   2. Place your custom monument prefabs in the `maps/prefabs` folder  
   Supported format: `.prefab`  
   Name format: `monument_original_path.prefab` (e.g. `fishing_village_c.prefab`)  
-  Requirements:
+  Requirements:  
     - Monument size should match the vanilla
     - Ensure proper terrain alignment in the prefab
 
