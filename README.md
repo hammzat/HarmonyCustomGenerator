@@ -57,10 +57,10 @@ To use the Monument Swapping feature:
   Supported format: `.prefab`  
   Name format: `monument_original_path.prefab` (e.g. `fishing_village_c.prefab`)  
   Requirements:  
-    - Monument size should match the vanilla
+    - Monument size should match the vanilla  
     - Ensure proper terrain alignment in the prefab
-
-> Note: Make sure your custom monuments are properly tested before using them on server!
+     
+> Note: Make sure your custom monuments and whole map are properly tested before using them on server!
 
 
 Configure all features at `HarmonyConfig/CustomGeneratorCFG.json`
