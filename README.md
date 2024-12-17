@@ -41,9 +41,6 @@ Allows you to generate semi-custom maps on default Rust generator.
 5. Map Image Generator
 - [x] Generate splat/height map
 - [x] Generate monument names
-- [x] Transparency support
-- [x] Image scale configuration
-- [x] Save in lossy and lossless formats
 
 6. Additional Features
 - [x] Monument Swapping
@@ -55,9 +52,9 @@ Allows you to generate semi-custom maps on default Rust generator.
 
 ### Monument Swapping Setup
 To use the Monument Swapping feature:
-  - Place your custom monument prefabs in the `maps/prefabs` folder
-  - Supported formats: `.prefab`
-  - Name format: `monument_original_path.prefab` (e.g. `fishing_village_c.prefab`)
+  Place your custom monument prefabs in the `maps/prefabs` folder
+  Supported formats: `.prefab`
+  Name format: `monument_original_path.prefab` (e.g. `fishing_village_c.prefab`)
   
   - Requirements:
     - Monument size should match the vanilla
