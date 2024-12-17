@@ -11,6 +11,9 @@ Allows you to generate semi-custom maps on default Rust generator.
 
 2. Map Settings
 - [x] Generate map over default limits
+> Don't generate maps larger than 6000!  
+> Rust client won't be able to process them and will just display as a 6000 map with flying prefabs and monuments
+
 - [x] Generate new map every time
 - [x] Save map in specific folder
 - [x] Save map with specific name
@@ -59,11 +62,9 @@ To use the Monument Swapping feature:
   - Requirements:
     - Monument size should match the vanilla
     - Ensure proper terrain alignment in the prefab
-    
+
 > Note: Make sure your custom monuments are properly tested before using them on server!
 
-> Don't generate maps larger than 6000!  
-> Rust client won't be able to process them and will just display as a 6000 map with flying prefabs and monuments
 
 Configure all features at `HarmonyConfig/CustomGeneratorCFG.json`
 
