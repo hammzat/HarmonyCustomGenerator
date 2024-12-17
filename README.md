@@ -34,9 +34,9 @@ Allows you to generate semi-custom maps on default Rust generator.
 
 4. Monuments
 - [ ] Full monument placement configuration
-- [ ] Configure minimum distances between monuments
-- [ ] Configure specific monument counts
-- [ ] Monument placement filters (biome, splat, topology)
+- [x] Configure distances between monuments
+- [x] Configure specific monument counts
+- [x] Monument placement filters (biome, splat, topology)
 
 5. Map Image Generator
 - [x] Generate splat/height map
