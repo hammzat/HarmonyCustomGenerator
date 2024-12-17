@@ -20,8 +20,9 @@ public class SwapMonument {
         LoadMonuments();
         SwapMonuments();
 
-        if (Config.Swap.SaveBothMaps) mapPath.Replace(".map", ".swapped.map");
-        _mainMap.Save(mapPath);
+        if (!Config.Swap.SaveBothMaps)
+            _mainMap.Save(mapPath);
+        else _mainMap.Save(mapPath.Replace(".map", ".swapped.map"));
     }
 
     private static void SwapMonuments() {

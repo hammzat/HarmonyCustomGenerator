@@ -6,6 +6,7 @@ using System;
 using System.IO;
 
 using static CustomGenerator.ExtConfig;
+using CustomGenerator.Utilities;
 namespace CustomGenerator.Patches {
     [HarmonyPatch]
     internal static class TerrainMeta_Init
@@ -16,22 +17,19 @@ namespace CustomGenerator.Patches {
         private static PropertyInfo _terrainTexturing = AccessTools.TypeByName("TerrainMeta").GetProperty("Texturing", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
         private static void Postfix(TerrainMeta __instance) {
-            CheckConfig();
-
             tempData.terrainMeta = __instance;
             tempData.terrainTexturing = (TerrainTexturing)_terrainTexturing.GetValue(__instance);
             tempData.terrainPath = (TerrainPath)_terrainPath.GetValue(__instance);
 
             if (tempData.terrainPath == null || tempData.terrainTexturing == null || tempData.terrainMeta == null)
-                Debug.Log("[CGen] One of components is null!");
-            Debug.Log("[CGen] Saved TerrainTexturing instance!");
+                Logging.Error("One of components is null!");
+            Logging.Info("Saved TerrainTexturing instance!");
         }
     }
     [HarmonyPatch]
     internal static class LoadingScreen_Update {
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(LoadingScreen), "Update", new Type[] { typeof(string) }); }
         private static void Prefix(ref string strType) {
-            CheckConfig();
             if (tempData.terrainTexturing == null || strType != "DONE")  return;
 
             Debug.Log($"SIZE: {tempData.mapsize} | SEED: {tempData.mapseed}");
@@ -55,14 +53,15 @@ namespace CustomGenerator.Patches {
     internal static class Timing_Start
     {
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(Timing), "Start", new Type[] { typeof(string) }); }
-        private static void Prefix(ref string name)
-        {
-            CheckConfig();
+        private static void Prefix(ref string name) {
             if (name != "Processing World") return;
             if (!Config.Generator.ModifyPercentages) return;
-
+            if (Config.Generator.RemoveRivers) {
+                World.Config.Rivers = false;
+                Logging.Generation("Rivers disabled");
+            }
             LoadPercentages();
-            Debug.Log($"[CGen] Changing tier percentages...");
+            Logging.Generation($"Changing tier percentages...");
         }
         static void LoadPercentages()
         {
@@ -73,7 +72,7 @@ namespace CustomGenerator.Patches {
                 World.Config.PercentageTier2 = Config.Generator.Tier.Tier2 / sum1;
             }
             else {
-                Debug.Log("Tier perc. summs lower than 100! Set default.");
+                Logging.Error("Tier perc. summs lower than 100! Set default.");
                 World.Config.PercentageTier0 = 0.3f;
                 World.Config.PercentageTier1 = 0.3f;
                 World.Config.PercentageTier2 = 0.4f;
@@ -87,7 +86,7 @@ namespace CustomGenerator.Patches {
             }
             else
             {
-                Debug.Log("Biom perc. summs lower than 100! Set default.");
+                Logging.Error("Biom perc. summs lower than 100! Set default.");
                 World.Config.PercentageBiomeArctic = 0.3f;
                 World.Config.PercentageBiomeArid = 0.4f;
                 World.Config.PercentageBiomeTundra = 0.15f;

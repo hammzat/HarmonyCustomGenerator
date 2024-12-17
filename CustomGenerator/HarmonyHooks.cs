@@ -4,7 +4,6 @@ namespace CustomGenerator
     internal class HarmonyModHooks : IHarmonyModHooks
     {
         void IHarmonyModHooks.OnLoaded(OnHarmonyModLoadedArgs args) {
-            ExtConfig.CheckConfig();
             Debug.Log("[Harmony] Loaded: CustomGenerator");
         }
 

@@ -15,6 +15,7 @@ using Graphics = System.Drawing.Graphics;
 using Debug = UnityEngine.Debug;
 
 using static CustomGenerator.ExtConfig;
+using CustomGenerator.Utilities;
 namespace CustomGenerator.Utility {
     // я честно не ебу что тут понаписал, но работает
     static class MapImage
@@ -31,12 +32,12 @@ namespace CustomGenerator.Utility {
                 if (File.Exists(Path.Combine(path, resource.Key))) continue;
 
                 using (var client = new WebClient()) {
-                    Debug.Log($"[CGen Deps] Downloading `{resource.Key}`...");
+                    Logging.Info($"DEPS - Downloading `{resource.Key}`...");
                     try {
                         client.DownloadFile(resource.Value, Path.Combine(path, resource.Key));
                     }
                     catch (Exception ex) {
-                        Console.WriteLine($"[CGen Deps] Error whilst downloading: {ex.Message} \nTry moving file from the `Resources` repository folder to the `mapimages/resources/`");
+                        Logging.Error($"DEPS - Error whilst downloading: {ex.Message} \nTry moving file from the `Resources` repository folder to the `mapimages/resources/`");
                     }
                 }
             }
@@ -46,12 +47,12 @@ namespace CustomGenerator.Utility {
 
             byte[] array = MapImageRender.Render(_instance, out int num, out int num2, out Color color, scale, false, false, 200);
             if (array == null) {
-                Debug.Log("[err] MapImageGenerator returned null!"); return;
+                Logging.Error("MapImageGenerator returned null!"); return;
             }
 
             string fullPath = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, $"mapimages/CustomMap{tempData.mapsize}_{tempData.mapseed}.png"));
             File.WriteAllBytes(fullPath, array);
-            Debug.Log($"Generated Map image: /mapimages/ \nMap saved to /maps/!\n\n\n\n");
+            Logging.Info($"Generated Map image: /mapimages/ \nMap saved to /maps/!");
         }
     }
 
@@ -146,7 +147,7 @@ namespace CustomGenerator.Utility {
         private static FieldInfo _monuments = AccessTools.TypeByName("TerrainPath").GetField("Monuments", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         private static void LoadIcons(ref Array2D<Color> output, TerrainTexturing _instance, int imageWidth, int imageHeight, int mapResolution, int oceanMargin) {
             List<MonumentInfo> monuments = (List<MonumentInfo>)_monuments.GetValue(tempData.terrainPath);
-            Debug.Log("[CGen] Generating names...");
+            Logging.Info("Generating names on map...");
 
             var originalMap = mapResolution + oceanMargin;
             var originalMapOffset = imageWidth - originalMap;
@@ -240,7 +241,7 @@ namespace CustomGenerator.Utility {
                 int textWidth = (int)textSize.Width;
                 int textHeight = (int)textSize.Height;
 
-                int x = (imageResolution / 2 ) - textWidth;
+                int x = (imageResolution / 2 ) + textWidth / 2;
                 int y = imageResolution - textHeight;
 
                 RenderText(text, fontPath, 14, color, ref output, x, y);
@@ -385,7 +386,7 @@ namespace CustomGenerator.Utility {
             }
         }
 
-        private static string GetMonumentName(MonumentInfo monument)
+        public static string GetMonumentName(MonumentInfo monument)
         {
             string name = monument.displayPhrase.english.Replace("\n", "");
             if (string.IsNullOrEmpty(name)) {

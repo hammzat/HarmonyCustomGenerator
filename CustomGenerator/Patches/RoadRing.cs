@@ -1,3 +1,4 @@
+using CustomGenerator.Utilities;
 using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,21 +15,20 @@ namespace CustomGenerator.Generators {
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(GenerateRoadRing), "Process"); }
         private static AccessTools.FieldRef<GenerateRoadRing, int> MinSize = AccessTools.FieldRefAccess<GenerateRoadRing, int>("MinWorldSize");
         private static void Prefix(GenerateRoadRing __instance, ref int seed) {
-            CheckConfig();
+            if (!Config.Generator.Road.ShouldChange) return;
             if (!Config.Generator.Road.Enabled) {
                 MinSize(__instance) = int.MaxValue;
-                Debug.Log($"[CGen - ROAD] MinWorldSize changed to max! Dont generate!");
+                Logging.Generation($"Road MinWorldSize changed to max! Dont generate!");
             }
             if (!Config.Generator.Road.GenerateRing) return;
 
             MinSize(__instance) = 0;
-            Debug.Log($"[CGen - ROAD] MinWorldSize changed to 0!");
+            Logging.Generation($"Road MinWorldSize changed to 0!");
         }
 
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
             List<CodeInstruction> list = instructions.ToList();
-            CheckConfig();
-            if (!Config.Generator.Road.GenerateRing) return list;
+            if (!Config.Generator.Road.GenerateRing || !Config.Generator.Road.ShouldChange) return list;
 
             for (int i = 0; i < list.Count; i++)
             {
@@ -53,11 +53,11 @@ namespace CustomGenerator.Generators {
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(PlaceMonumentsRoadside), "Process"); }
         private static AccessTools.FieldRef<PlaceMonumentsRoadside, int> MinSize = AccessTools.FieldRefAccess<PlaceMonumentsRoadside, int>("MinWorldSize");
         private static void Prefix(PlaceMonumentsRoadside __instance, ref int seed) {
-            CheckConfig();
+            if (!Config.Generator.Road.ShouldChange) return;
             if (Config.Generator.Road.GenerateSideMonuments) return;
 
             MinSize(__instance) = 99999;
-            Debug.Log($"[CGen - ROADmonum] MinWorldSize changed to 99999!");
+            Logging.Generation($"RoadMonuments MinWorldSize changed to 99999!");
         }
     }
 
@@ -66,6 +66,7 @@ namespace CustomGenerator.Generators {
     {
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(PlaceRoadObjects), "Process"); }
         private static bool Prefix(PlaceRoadObjects __instance) {
+            if (!Config.Generator.Road.ShouldChange) return true;
             if (!Config.Generator.Road.GenerateSideObjects) 
                 return false;
             return true;
