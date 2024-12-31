@@ -42,7 +42,7 @@ namespace CustomGenerator.Patches {
             }
 
             MapImage.RenderMap(tempData.terrainTexturing, 0.75f, 150);
-
+            
             //Rust.Application.Quit();
             Application.Quit();
             return;
@@ -53,10 +53,12 @@ namespace CustomGenerator.Patches {
     internal static class Timing_Start
     {
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(Timing), "Start", new Type[] { typeof(string) }); }
-        private static void Prefix(ref string name) {
+        private static void Prefix(ref string name)
+        {
             if (name != "Processing World") return;
             if (!Config.Generator.ModifyPercentages) return;
-            if (Config.Generator.RemoveRivers) {
+            if (Config.Generator.RemoveRivers)
+            {
                 World.Config.Rivers = false;
                 Logging.Generation("Rivers disabled");
             }
@@ -66,31 +68,25 @@ namespace CustomGenerator.Patches {
         static void LoadPercentages()
         {
             float sum1 = Config.Generator.Tier.Tier0 + Config.Generator.Tier.Tier1 + Config.Generator.Tier.Tier2;
-            if (sum1 >= 100f) {
-                World.Config.PercentageTier0 = Config.Generator.Tier.Tier0 / sum1;
-                World.Config.PercentageTier1 = Config.Generator.Tier.Tier1 / sum1;
-                World.Config.PercentageTier2 = Config.Generator.Tier.Tier2 / sum1;
-            }
-            else {
-                Logging.Error("Tier perc. summs lower than 100! Set default.");
-                World.Config.PercentageTier0 = 0.3f;
-                World.Config.PercentageTier1 = 0.3f;
-                World.Config.PercentageTier2 = 0.4f;
-            }
             float sum2 = Config.Generator.Biom.Arid + Config.Generator.Biom.Arctic + Config.Generator.Biom.Temperate + Config.Generator.Biom.Tundra;
-            if (sum2 >= 100f) {
-                World.Config.PercentageBiomeArid = Config.Generator.Biom.Arid / sum2;
-                World.Config.PercentageBiomeArctic = Config.Generator.Biom.Arctic / sum2;
-                World.Config.PercentageBiomeTemperate = Config.Generator.Biom.Temperate / sum2;
-                World.Config.PercentageBiomeTundra = Config.Generator.Biom.Tundra / sum2;
+
+            World.Config.PercentageTier0 = sum1 >= 100f ? Config.Generator.Tier.Tier0 / sum1 : 0.3f;
+            World.Config.PercentageTier1 = sum1 >= 100f ? Config.Generator.Tier.Tier1 / sum1 : 0.3f;
+            World.Config.PercentageTier2 = sum1 >= 100f ? Config.Generator.Tier.Tier2 / sum1 : 0.4f;
+
+            if (sum1 < 100f)
+            {
+                Logging.Error("Tier perc. summs lower than 100! Set default.");
             }
-            else
+
+            World.Config.PercentageBiomeArid = sum2 >= 100f ? Config.Generator.Biom.Arid / sum2 : 0.4f;
+            World.Config.PercentageBiomeArctic = sum2 >= 100f ? Config.Generator.Biom.Arctic / sum2 : 0.3f;
+            World.Config.PercentageBiomeTemperate = sum2 >= 100f ? Config.Generator.Biom.Temperate / sum2 : 0.15f;
+            World.Config.PercentageBiomeTundra = sum2 >= 100f ? Config.Generator.Biom.Tundra / sum2 : 0.15f;
+
+            if (sum2 < 100f)
             {
                 Logging.Error("Biom perc. summs lower than 100! Set default.");
-                World.Config.PercentageBiomeArctic = 0.3f;
-                World.Config.PercentageBiomeArid = 0.4f;
-                World.Config.PercentageBiomeTundra = 0.15f;
-                World.Config.PercentageBiomeTemperate = 0.15f;
             }
         }
     }
