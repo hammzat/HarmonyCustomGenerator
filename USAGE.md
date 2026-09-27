@@ -13,8 +13,9 @@ How to install the mod, set up the config and swap monuments.
 8. [Monuments](#monuments)
 9. [Custom monuments](#custom-monuments)
 10. [Monument swap](#monument-swap)
-11. [Recipes](#recipes)
-12. [Troubleshooting](#troubleshooting)
+11. [Live server: RustEdit IO](#live-server-rustedit-io)
+12. [Recipes](#recipes)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -31,7 +32,7 @@ The mod hooks into the vanilla Rust map generator through Harmony and changes it
 ## Installation
 
 1. You need a Rust Dedicated Server. Harmony 2.3 is already included.
-2. Download `CustomGenerator-<version>.zip` from [Releases](https://github.com/publicrust/HarmonyCustomGenerator/releases) and unpack it into the server folder, next to `RustDedicated.exe`. It contains `HarmonyMods/CustomGenerator.dll`, the [launcher](#config-editor) `CustomGeneratorLauncher.exe` and the preview fonts in `mapimages/resources/`.
+2. Download `CustomGenerator-<version>.zip` from [Releases](https://github.com/publicrust/HarmonyCustomGenerator/releases) and unpack it into the server folder, next to `RustDedicated.exe`. It contains `HarmonyMods/CustomGenerator.dll`, the [launcher](#config-editor) `CustomGeneratorLauncher.exe` and the preview fonts in `mapimages/resources/`. The `live-server/` folder is for the [live server](#live-server-rustedit-io), not for this one.
 3. That's it. The config is created on the first run.
 
 Where things are (all paths are relative to the server folder that contains `RustDedicated.exe`):
@@ -468,6 +469,8 @@ Two formats are supported. Put the file in the folder and write its name in `Fil
 
 Prefabs that don't exist in the current Rust version and prefabs with broken coordinates (NaN) are skipped with a warning in the log.
 
+IO (wires) of the file is saved into the map and works with [CustomGenerator.Server](#live-server-rustedit-io) on the live server.
+
 ### Fields
 
 | Field | Default | Description |
@@ -542,6 +545,8 @@ What is **not** transferred:
 - roads and rails: they stay connected to the original monument's layout;
 - the preview in `mapimages/`: it's rendered before the swap and shows the **original** monuments.
 
+IO (wires) of your file is carried over and works with [CustomGenerator.Server](#live-server-rustedit-io) on the live server. Shops of vending machines aren't carried over yet.
+
 ### Step 1. Build the monument in RustEdit
 
 **Option A: based on the original** (you add objects around a vanilla monument):
@@ -581,6 +586,38 @@ Run a generation. `[SWAP MN]` lines appear in the server log. Check the result b
 
 ### Combining swap with monument settings
 They work together. For example, make 3 harbors with `PrefabCopies` and replace every `harbor_1` with your version: the swap replaces **each** copy.
+
+---
+
+## Live server: RustEdit IO
+
+`CustomGenerator.Server.dll` is a separate mod for the **live** server that runs the map, not for the generation server.
+
+Monuments made in RustEdit can have IO: wires between generators, switches, lamps, card readers, doors and so on. Vanilla Rust doesn't keep it in the map, and RustEdit's own IO data can't be carried into a generated map. So CustomGenerator saves the IO of your monuments into the map in its own format, and `CustomGenerator.Server` wires everything up when the live server starts.
+
+What is carried over:
+- custom monuments: IO from `.map` and `.prefab` files;
+- swap: IO from `maps/prefabs/*.prefab.map`;
+- connections, timer length, RF frequency, branch amount, counter target and passthrough, card reader access level, CCTV identifier, phone name, turret peacekeeper mode.
+
+Not yet: vending machine shops, turret weapons and unlimited ammo, elevator floors, door effects. Wires work but aren't drawn in the world.
+
+**Installation on the live server:**
+1. Take `live-server/HarmonyMods/CustomGenerator.Server.dll` from the release archive and put it into the live server's `HarmonyMods/`.
+2. Use the generated map as usual (`server.levelurl`).
+
+It doesn't need Oxide or Carbon and works next to the RustEdit extension: they read different data.
+
+The generation log shows what was saved, e.g. `Custom monuments: 19 IO entities saved to the map for CustomGenerator.Server`. The live server log shows the result:
+```
+[CGen Server] IO: 19/19 entities found, 19 connections made
+[CGen Server] IO: 6/19 entities have power
+```
+"Have power" counts what is powered right after the start: entities behind sensors, buttons or empty fuse boxes get power only when a player uses them.
+
+The mod runs on every start and only adds what's missing. Rust doesn't save static map entities (like `generator.static`), so their wires are restored each time; connections already in the save are left alone.
+
+> If a Rust update changed the number of slots of a prefab, some connections can't be made. The log says which one, e.g. `generator.static has 6 outputs now, the monument uses output 6`. Re-save the monument in the current RustEdit.
 
 ---
 
@@ -637,6 +674,7 @@ They work together. For example, make 3 harbors with `PrefabCopies` and replace 
 | A swapped monument is shifted, rotated or underground | Is the original or the SpawnPoint first in the hierarchy? Is it unrotated? Does the SpawnPoint match the original's center, height included? |
 | A custom monument wasn't placed | Look for `no suitable spot found` in the log: lower the distances, raise `MaxHeightDifference`, widen `MinHeight`–`MaxHeight`, loosen `Filter`, use a bigger map. File errors are logged too |
 | A custom monument floats or is buried | `.map`: is the anchor (first prefab) on the ground? `.prefab`: is `y = 0` the ground level? Try `"HeightMode": "Flatten"` |
+| Monument IO doesn't work on the live server | Is `CustomGenerator.Server.dll` in the live server's `HarmonyMods`? Look for `[CGen Server]` lines in its log |
 | The preview shows the old monuments | Expected: the preview is rendered before the swap. Check the result in RustEdit |
 | No preview or a font error | The fonts come with the release archive. Otherwise the mod downloads them, so without internet access copy them from the repository's `Resources/` folder to `mapimages/resources/`. Also check `Map Image → Enabled` |
 | A map above 6000 looks broken | The Rust client doesn't support such sizes, stay at 6000 or below |

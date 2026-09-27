@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using CustomGenerator.Shared;
 using CustomGenerator.Utility;
 using HarmonyLib;
 using ProtoBuf;
@@ -27,6 +28,8 @@ namespace CustomGenerator.Custom
         }
 
         public readonly List<Item> Items = new List<Item>();
+        // RustEdit IO entities, positions in the same local frame as Items
+        public readonly List<IOEntityInfo> IO = new List<IOEntityInfo>();
         public float AutoRadius;
         public int UnknownPrefabs;
         public int BrokenPrefabs;
@@ -89,6 +92,14 @@ namespace CustomGenerator.Custom
                 radius = Mathf.Max(radius, new Vector2(local.x, local.z).magnitude);
             }
             data.AutoRadius = Mathf.Max(20f, radius + 10f);
+
+            foreach (var io in MapExtrasWriter.ReadRustEditIO(world, path)) {
+                data.IO.Add(MapExtrasWriter.Transform(io, position => {
+                    Vector3 local = inverse * (position - data._anchorPos);
+                    local.y += data._anchorPos.y - data.AnchorGround;
+                    return local;
+                }));
+            }
             return data;
         }
 
@@ -115,6 +126,14 @@ namespace CustomGenerator.Custom
                     var settings = reader.Message();
                     while (settings.Next(out int f, out int w)) {
                         if (f == 1 && w == 0) terrainSize = (float)settings.Varint(); else settings.Skip(w);
+                    }
+                    continue;
+                }
+                if (field == 5 && wire == 2) {
+                    // IO entities, positions relative to the pivot like the prefabs
+                    var io = reader.Message();
+                    while (io.Next(out int f, out int w)) {
+                        if (f == 1 && w == 2) data.IO.Add(ReadIOEntity(io.Message())); else io.Skip(w);
                     }
                     continue;
                 }
@@ -145,6 +164,49 @@ namespace CustomGenerator.Custom
             data.AutoRadius = Mathf.Max(20f, radius + 10f);
             if (terrainSize > 0f) data._prefabTerrain = PrefabTerrain.Load(path, terrainSize);
             return data;
+        }
+
+        // RustEdit's SerializedIOEntity: fields in the order of its XML elements, zero values are omitted
+        private static IOEntityInfo ReadIOEntity(ProtoReader m) {
+            var e = new IOEntityInfo { DoorEffect = 0, Floors = 0 };
+            while (m.Next(out int f, out int w)) {
+                switch (f) {
+                    case 1 when w == 2: e.Prefab = m.String(); break;
+                    case 2 when w == 2: e.Position = MapExtrasWriter.ToArray(m.Message().Vector(Vector3.zero)); break;
+                    case 3 when w == 2: e.Inputs.Add(ReadIOConnection(m.Message())); break;
+                    case 4 when w == 2: e.Outputs.Add(ReadIOConnection(m.Message())); break;
+                    case 5 when w == 0: e.AccessLevel = (int)(long)m.Varint(); break;
+                    case 6 when w == 0: e.DoorEffect = (int)(long)m.Varint(); break;
+                    case 7 when w == 5: e.TimerLength = m.Fixed32(); break;
+                    case 8 when w == 0: e.Frequency = (int)(long)m.Varint(); break;
+                    case 9 when w == 0: e.UnlimitedAmmo = m.Varint() != 0; break;
+                    case 10 when w == 0: e.PeaceKeeper = m.Varint() != 0; break;
+                    case 11 when w == 2: e.AutoTurretWeapon = m.String(); break;
+                    case 12 when w == 0: e.BranchAmount = (int)(long)m.Varint(); break;
+                    case 13 when w == 0: e.TargetCounterNumber = (int)(long)m.Varint(); break;
+                    case 14 when w == 2: e.RcIdentifier = m.String(); break;
+                    case 15 when w == 0: e.CounterPassthrough = m.Varint() != 0; break;
+                    case 16 when w == 0: e.Floors = (int)(long)m.Varint(); break;
+                    case 17 when w == 2: e.PhoneName = m.String(); break;
+                    default: m.Skip(w); break;
+                }
+            }
+            return e;
+        }
+
+        // SerializedConnectionData: the other end of a slot; an empty one means the slot isn't connected
+        private static IOConnectionInfo ReadIOConnection(ProtoReader m) {
+            var c = new IOConnectionInfo();
+            while (m.Next(out int f, out int w)) {
+                switch (f) {
+                    case 1 when w == 2: c.Prefab = m.String(); break;
+                    case 2 when w == 2: c.Position = MapExtrasWriter.ToArray(m.Message().Vector(Vector3.zero)); break;
+                    case 4 when w == 0: c.Slot = (int)(long)m.Varint(); break;
+                    case 5 when w == 0: c.Type = (int)(long)m.Varint(); break;
+                    default: m.Skip(w); break;
+                }
+            }
+            return string.IsNullOrEmpty(c.Prefab) ? null : c;
         }
 
         // Terrain saved by RustEdit next to a .prefab: RGBA PNGs covering a square of Size meters centered on the pivot,
@@ -445,9 +507,10 @@ namespace CustomGenerator.Custom
                     done++;
                     Logging.Generation($"Custom monument '{name}' #{done}: {position.x:0}, {position.z:0} (height {baseHeight:0.0}, rotation {angle:0})");
                 }
-                Logging.Generation($"Custom monument '{name}': placed {done}/{cfg.Count}, radius {radius:0}m, {data.Items.Count} prefabs each");
+                Logging.Generation($"Custom monument '{name}': placed {done}/{cfg.Count}, radius {radius:0}m, {data.Items.Count} prefabs each" + (data.IO.Count > 0 ? $", {data.IO.Count} IO entities each" : ""));
                 GenerationReport.CustomMonument(name, done, cfg.Count, done < cfg.Count ? "no room for the rest, see the log" : null);
             }
+            MapExtrasWriter.Write(World.Serialization, MapExtrasWriter.GeneratedIO, "Custom monuments");
         }
 
         private static bool TryFindSpot(CustomMonument cfg, string name, float radius, List<Placed> placed, ref uint seed, out Vector3 best, out float bestHeight) {
@@ -565,6 +628,13 @@ namespace CustomGenerator.Custom
                 Vector3 offset = rotation * new Vector3(item.Local.x, 0f, item.Local.z);
                 var position = new Vector3(center.x + offset.x, baseHeight + item.Local.y, center.z + offset.z);
                 World.Serialization.AddPrefab(item.Category, item.Id, position, rotation * item.Rotation, item.Scale);
+            }
+            // Same transform as the prefabs, so CustomGenerator.Server finds the spawned entities at these positions
+            foreach (var io in data.IO) {
+                MapExtrasWriter.GeneratedIO.Add(MapExtrasWriter.Transform(io, local => {
+                    Vector3 offset = rotation * new Vector3(local.x, 0f, local.z);
+                    return new Vector3(center.x + offset.x, baseHeight + local.y, center.z + offset.z);
+                }));
             }
         }
 

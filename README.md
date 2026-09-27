@@ -61,6 +61,7 @@ For help, report issue and etc. join [our discord](https://discord.gg/xUdpkm8RUS
   - Place your own RustEdit monuments (`.map` or `.prefab`) at new spots, with their terrain
   - Stamp or flatten terrain, copy textures, topology and holes
   - Placement checks: height, slope, distances, biome/topology filter
+- [x] RustEdit IO (wires) of custom and swapped monuments, wired on the live server by `CustomGenerator.Server.dll`
 - [x] Monument Swapping
   - Replace vanilla monuments with custom ones
   - Swap specific monument types (e.g., replace Outpost with custom version)
