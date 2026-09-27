@@ -1,9 +1,9 @@
 # Monument swap
 
-This guide has moved into the main documentation, which is kept up to date with the code:
+This guide has moved to the wiki:
 
-- English: [USAGE.md → Monument swap](USAGE.md#monument-swap)
-- Русский: [USAGE_RU.md → Замена монументов](USAGE_RU.md#замена-монументов-свап--swap-monuments)
+- English: [Wiki → Monument swap](https://github.com/hammzat/HarmonyCustomGenerator/wiki/Monument-swap)
+- Русский: [Вики → Свап монументов](https://github.com/hammzat/HarmonyCustomGenerator/wiki/Свап-монументов)
 
 Quick checklist:
 1. Build the monument in RustEdit. The first object in the hierarchy is the original monument or a SpawnPoint at (0, 0, 0), without rotation.

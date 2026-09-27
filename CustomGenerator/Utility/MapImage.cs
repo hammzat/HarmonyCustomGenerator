@@ -18,6 +18,7 @@ using static CustomGenerator.ExtConfig;
 using CustomGenerator.Utility;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace CustomGenerator.Utility {
     static class MapImage
@@ -99,20 +100,6 @@ namespace CustomGenerator.Utility {
                 _items = items;
                 _width = width;
                 _height = height;
-            }
-
-            public Bitmap ToBitmap()
-            {
-                Bitmap bitmap = new Bitmap(_width, _height);
-                for (int y = 0; y < _height; y++)
-                {
-                    for (int x = 0; x < _width; x++)
-                    {
-                        Color color = (Color)(object)this[x, y];
-                        bitmap.SetPixel(x, y, color.ToSystemDrawingColor());
-                    }
-                }
-                return bitmap;
             }
 
             public bool IsEmpty() => _items == null || _width == 0 && _height == 0;
@@ -224,8 +211,7 @@ namespace CustomGenerator.Utility {
 
             background = output[0, 0];
 
-            LoadIcons(ref output, imageWidth, imageHeight, mapRes, oceanMargin);
-            if (Config.MapImage.Grid) RenderGrid(ref output, mapRes, imageWidth, oceanMargin);
+            DrawOverlays(array, imageWidth, imageHeight, mapRes, oceanMargin);
 
             Logging.Info($"Map image: rendered in {stopwatch.Elapsed.TotalSeconds:0.0}s, encoding...");
             stopwatch.Stop();
@@ -240,7 +226,26 @@ namespace CustomGenerator.Utility {
 
         static float GetShoreDist(float x, float y) => TerrainTexturing.Instance.GetMainlandCoarseVectorToShore(x, y).shoreDist;
 
-        private static void LoadIcons(ref Array2D<Color> output, int imageWidth, int imageHeight, int mapResolution, int oceanMargin) {
+        // Names, the github line and the grid all go on one bitmap: a single
+        // conversion there and back instead of one per label
+        private static void DrawOverlays(Color[] pixels, int imageWidth, int imageHeight, int mapResolution, int oceanMargin) {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            using (Bitmap bitmap = ToBitmap(pixels, imageWidth, imageHeight)) {
+                using (Graphics graphics = Graphics.FromImage(bitmap)) {
+                    graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                    if (Config.MapImage.MonumentNames) RenderMonument(graphics, CollectMonuments(imageWidth, mapResolution, oceanMargin), PermanentMarkerFont);
+                    RenderGithub(graphics, DinProFontBold, imageWidth);
+                    if (Config.MapImage.Grid) RenderGrid(graphics, mapResolution, imageWidth, oceanMargin);
+                }
+                FromBitmap(bitmap, pixels);
+            }
+
+            stopwatch.Stop();
+            Logging.Info($"Map image: labels drawn in {stopwatch.Elapsed.TotalSeconds:0.0}s");
+        }
+
+        private static List<MapMonument> CollectMonuments(int imageWidth, int mapResolution, int oceanMargin) {
             List<MonumentInfo> monuments = (List<MonumentInfo>)_monuments.GetValue(tempData.terrainPath);
 
             var originalMap = mapResolution + oceanMargin;
@@ -269,157 +274,164 @@ namespace CustomGenerator.Utility {
                 mapMonuments.Add(new MapMonument { name = custom.Key, x = x, y = z, indication = Indication.Regular });
             }
 
-            if (Config.MapImage.MonumentNames) RenderMonument(mapMonuments, PermanentMarkerFont, ref output);
-            RenderGithub(DinProFontBold, ref output, mapResolution, imageWidth);
+            return mapMonuments;
         }
 
-        private static void RenderText(string text, string fontPath, int fontSize, System.Drawing.Color color, ref Array2D<Color> output, int xx, int zz)
-        {
-            Bitmap bitmap = output.ToBitmap();
-            PrivateFontCollection fontCollection = new PrivateFontCollection();
-            fontCollection.AddFontFile(fontPath);
-            Font font = new Font(fontCollection.Families[0], fontSize);
-
-            using (Graphics graphics = Graphics.FromImage(bitmap)) {
-                graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                using (SolidBrush brush = new SolidBrush(color)) {
-                    SizeF textSize = graphics.MeasureString(text, font);
-                    float textX = xx - (textSize.Width / 2);
-                    float textY = zz - (textSize.Height / 2);
-
-                    graphics.TranslateTransform(textX, textY);
-                    graphics.RotateTransform(180);
-                    graphics.ScaleTransform(-1, 1);
-                    graphics.DrawString(text, font, brush, 0, -textSize.Height);
-                }
+        // Format32bppArgb is laid out as B, G, R, A bytes
+        private static Bitmap ToBitmap(Color[] pixels, int width, int height) {
+            var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            var data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            try {
+                int stride = data.Stride;
+                byte[] bytes = new byte[stride * height];
+                Parallel.For(0, height, y => {
+                    int src = y * width;
+                    int dst = y * stride;
+                    for (int x = 0; x < width; x++, dst += 4) {
+                        Color c = pixels[src + x];
+                        bytes[dst] = ToByte(c.b);
+                        bytes[dst + 1] = ToByte(c.g);
+                        bytes[dst + 2] = ToByte(c.r);
+                        bytes[dst + 3] = ToByte(c.a);
+                    }
+                });
+                Marshal.Copy(bytes, 0, data.Scan0, bytes.Length);
             }
+            finally {
+                bitmap.UnlockBits(data);
+            }
+            return bitmap;
+        }
 
+        private static void FromBitmap(Bitmap bitmap, Color[] pixels) {
             int width = bitmap.Width;
             int height = bitmap.Height;
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    var px = bitmap.GetPixel(x, y);
-                    output[x, y] = new UnityEngine.Color(
-                        Mathf.Clamp(px.R / 255f, 0f, 1f),
-                        Mathf.Clamp(px.G / 255f, 0f, 1f),
-                        Mathf.Clamp(px.B / 255f, 0f, 1f),
-                        Mathf.Clamp(px.A / 255f, 0f, 1f)
-                    );
-                }
+            var data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            try {
+                int stride = data.Stride;
+                byte[] bytes = new byte[stride * height];
+                Marshal.Copy(data.Scan0, bytes, 0, bytes.Length);
+                Parallel.For(0, height, y => {
+                    int dst = y * width;
+                    int src = y * stride;
+                    for (int x = 0; x < width; x++, src += 4)
+                        pixels[dst + x] = new Color(bytes[src + 2] / 255f, bytes[src + 1] / 255f, bytes[src] / 255f, bytes[src + 3] / 255f);
+                });
+            }
+            finally {
+                bitmap.UnlockBits(data);
             }
         }
 
-        private static void RenderGithub(string fontPath, ref Array2D<Color> output, int mapResolution, int imageResolution) {
-            var color = System.Drawing.Color.WhiteSmoke;
+        private static byte ToByte(float value) => (byte)Mathf.Clamp(Mathf.FloorToInt(value * 255), 0, 255);
+
+        private static void RenderText(Graphics graphics, string text, Font font, Brush brush, int xx, int zz)
+        {
+            SizeF textSize = graphics.MeasureString(text, font);
+            float textX = xx - (textSize.Width / 2);
+            float textY = zz - (textSize.Height / 2);
+
+            graphics.TranslateTransform(textX, textY);
+            graphics.RotateTransform(180);
+            graphics.ScaleTransform(-1, 1);
+            graphics.DrawString(text, font, brush, 0, -textSize.Height);
+            graphics.ResetTransform();
+        }
+
+        private static void RenderGithub(Graphics graphics, string fontPath, int imageResolution) {
             var text = "github.com/hammzat/HarmonyCustomGenerator - DeepSea Update [by aristocratos]";
 
             float scaleFactor = 0.04f;
             int fontSize = Mathf.Clamp((int)(imageResolution * scaleFactor), 10, 30);
 
-            using (Font font = new Font(fontPath, fontSize)) {
-                using (var dummyImage = new Bitmap(1, 1))
-                using (var g = Graphics.FromImage(dummyImage)) {
-                    SizeF textSize = g.MeasureString(text, font);
-                    int textHeight = (int)textSize.Height;
+            using (var fontCollection = new PrivateFontCollection()) {
+                fontCollection.AddFontFile(fontPath);
+                using (Font font = new Font(fontCollection.Families[0], fontSize))
+                using (SolidBrush brush = new SolidBrush(System.Drawing.Color.WhiteSmoke)) {
+                    int textHeight = (int)graphics.MeasureString(text, font).Height;
 
                     int x = imageResolution / 2;
                     int y = imageResolution - textHeight;
 
-                    RenderText(text, fontPath, fontSize, color, ref output, x, y);
+                    RenderText(graphics, text, font, brush, x, y);
                 }
             }
         }
 
-        private static void RenderMonument(List<MapMonument> monuments, string fontPath, ref Array2D<Color> output) {
+        private static void RenderMonument(Graphics graphics, List<MapMonument> monuments, string fontPath) {
             Logging.Info("Map image: monument names");
-            var color = System.Drawing.Color.Black;
 
-            foreach (MapMonument monument in monuments) {
-                if (monument.indication == Indication.None) continue;
-                if (monument.indication == Indication.Image) continue; // TODO
+            using (var fontCollection = new PrivateFontCollection()) {
+                fontCollection.AddFontFile(fontPath);
+                using (Font regular = new Font(fontCollection.Families[0], 20))
+                using (Font smaller = new Font(fontCollection.Families[0], 11))
+                using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Black)) {
+                    foreach (MapMonument monument in monuments) {
+                        if (monument.indication == Indication.None) continue;
+                        if (monument.indication == Indication.Image) continue; // TODO
 
-                var x = monument.x;
-                var y = monument.y;
-                var text = monument.name;
-                int fontSize = monument.indication == Indication.Regular ? 20 : 11;
-
-                RenderText(text, fontPath, fontSize, color, ref output, x, y);
+                        Font font = monument.indication == Indication.Regular ? regular : smaller;
+                        RenderText(graphics, monument.name, font, brush, monument.x, monument.y);
+                    }
+                }
             }
         }
 
-        private static void RenderGrid(ref Array2D<Color> output, int mapResolution, int imageWidth, int oceanMargin) {
+        private static void RenderGrid(Graphics graphics, int mapResolution, int imageWidth, int oceanMargin) {
             Logging.Info("Map image: grid");
             var gridColor = System.Drawing.Color.FromArgb(120, 0, 0, 0);
-            var bitmap = output.ToBitmap();
 
-            using (Graphics graphics = Graphics.FromImage(bitmap)) {
-                graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            graphics.TextRenderingHint = TextRenderingHint.SystemDefault;
 
-                float gridSize = 146.3f;
-                float cellSize = (float)mapResolution / (tempData.mapsize / gridSize);
+            float gridSize = 146.3f;
+            float cellSize = (float)mapResolution / (tempData.mapsize / gridSize);
 
-                using (Pen gridPen = new Pen(gridColor, 1)) {
-                    int gridCount = (int)(tempData.mapsize / gridSize);
-                    for (int i = 0; i <= gridCount; i++) {
-                        float x = oceanMargin + (i * cellSize);
-                        if (x >= oceanMargin && x <= imageWidth - oceanMargin) {
-                            graphics.DrawLine(gridPen, x, oceanMargin, x, imageWidth - oceanMargin);
-                        }
+            using (Pen gridPen = new Pen(gridColor, 1)) {
+                int gridCount = (int)(tempData.mapsize / gridSize);
+                for (int i = 0; i <= gridCount; i++) {
+                    float x = oceanMargin + (i * cellSize);
+                    if (x >= oceanMargin && x <= imageWidth - oceanMargin) {
+                        graphics.DrawLine(gridPen, x, oceanMargin, x, imageWidth - oceanMargin);
                     }
+                }
 
-                    for (int i = 0; i <= gridCount; i++) {
-                        float y = oceanMargin + (i * cellSize);
-                        if (y >= oceanMargin && y <= imageWidth - oceanMargin) {
-                            graphics.DrawLine(gridPen, oceanMargin, y, imageWidth - oceanMargin, y);
-                        }
+                for (int i = 0; i <= gridCount; i++) {
+                    float y = oceanMargin + (i * cellSize);
+                    if (y >= oceanMargin && y <= imageWidth - oceanMargin) {
+                        graphics.DrawLine(gridPen, oceanMargin, y, imageWidth - oceanMargin, y);
                     }
+                }
 
-                    Font gridFont = new Font("Arial", 12, SDFontStyle.Bold);
-                    float padding = 5f;
+                Font gridFont = new Font("Arial", 12, SDFontStyle.Bold);
+                float padding = 5f;
 
-                    using (SolidBrush brush = new SolidBrush(gridColor)) {
-                        for (int x = 0; x < gridCount; x++) {
-                            for (int y = 0; y < gridCount; y++) {
-                                float posX = oceanMargin + (x * cellSize);
-                                float posY = oceanMargin + (y * cellSize);
-                                float nextPosX = posX + cellSize;
-                                float nextPosY = posY + cellSize;
+                using (SolidBrush brush = new SolidBrush(gridColor)) {
+                    for (int x = 0; x < gridCount; x++) {
+                        for (int y = 0; y < gridCount; y++) {
+                            float posX = oceanMargin + (x * cellSize);
+                            float posY = oceanMargin + (y * cellSize);
+                            float nextPosX = posX + cellSize;
+                            float nextPosY = posY + cellSize;
 
-                                bool isFull = posX >= oceanMargin && nextPosX <= imageWidth - oceanMargin && posY >= oceanMargin && nextPosY <= imageWidth - oceanMargin;
-                                bool isPartRight = posX >= oceanMargin && posX <= imageWidth - oceanMargin && posY >= oceanMargin && posY <= imageWidth - oceanMargin && nextPosX > imageWidth - oceanMargin;
+                            bool isFull = posX >= oceanMargin && nextPosX <= imageWidth - oceanMargin && posY >= oceanMargin && nextPosY <= imageWidth - oceanMargin;
+                            bool isPartRight = posX >= oceanMargin && posX <= imageWidth - oceanMargin && posY >= oceanMargin && posY <= imageWidth - oceanMargin && nextPosX > imageWidth - oceanMargin;
 
-                                if (isFull || isPartRight) {
-                                    string coords = x <= 25 ? $"{(char)('A' + x)}{gridCount - y}" : $"{(char)('A' + (x / 26 - 1))}{(char)('A' + (x % 26))}{gridCount - y}";
-                                    float textX = posX + padding;
-                                    float textY = posY + padding + (cellSize - (padding * 6));
+                            if (isFull || isPartRight) {
+                                string coords = x <= 25 ? $"{(char)('A' + x)}{gridCount - y}" : $"{(char)('A' + (x / 26 - 1))}{(char)('A' + (x % 26))}{gridCount - y}";
+                                float textX = posX + padding;
+                                float textY = posY + padding + (cellSize - (padding * 6));
 
-                                    graphics.TranslateTransform(textX, textY);
-                                    graphics.RotateTransform(180);
-                                    graphics.ScaleTransform(-1, 1);
-                                    graphics.DrawString(coords, gridFont, brush, 0, -gridFont.Height);
-                                    graphics.ResetTransform();
-                                }
+                                graphics.TranslateTransform(textX, textY);
+                                graphics.RotateTransform(180);
+                                graphics.ScaleTransform(-1, 1);
+                                graphics.DrawString(coords, gridFont, brush, 0, -gridFont.Height);
+                                graphics.ResetTransform();
                             }
                         }
                     }
-                    gridFont.Dispose();
                 }
-            }
-
-            int width = bitmap.Width;
-            int height = bitmap.Height;
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    var px = bitmap.GetPixel(x, y);
-                    output[x, y] = new UnityEngine.Color(
-                        Mathf.Clamp(px.R / 255f, 0f, 1f),
-                        Mathf.Clamp(px.G / 255f, 0f, 1f),
-                        Mathf.Clamp(px.B / 255f, 0f, 1f),
-                        Mathf.Clamp(px.A / 255f, 0f, 1f)
-                    );
-                }
+                gridFont.Dispose();
             }
         }
 
