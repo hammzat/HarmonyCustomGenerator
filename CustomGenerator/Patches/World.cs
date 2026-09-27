@@ -12,11 +12,12 @@ namespace CustomGenerator.Generators
     internal static class World_InitSize {
         private static uint _size = 0;
         private static void Prefix(ref uint size) {
-            if (!Config.mapSettings.OverrideSizes) return;
+            // Remembered even without the override: the map image and the report use it
             tempData.mapsize = size;
             _size = size;
+            if (!Config.mapSettings.OverrideSizes) return;
 
-            Logging.Generation("Writed size to convars...");
+            Logging.Generation($"Map size {size}");
             if (size > 6000U || size < 1000U) {
                 Logging.Generation($"World ({_size}) - Using size bigger or smaller than default, rewriting limits...");
             }
@@ -27,7 +28,7 @@ namespace CustomGenerator.Generators
     internal static class World_InitSeed {
         private static void Prefix(ref uint seed) {
             tempData.mapseed = seed;
-            Logging.Generation("Writed seed to convars...");
+            Logging.Generation($"Seed {seed}");
         }
     }
 
@@ -35,18 +36,18 @@ namespace CustomGenerator.Generators
     public static class World_getSize {
         public static void Postfix(ref uint __result) {
             if (!Config.mapSettings.OverrideSizes) return;
-            if (tempData.mapsize == 0) { Logging.Info("map size == 0!"); return; }
+            if (tempData.mapsize == 0) return;
             __result = tempData.mapsize;
         }
     }
     [HarmonyPatch(typeof(World), "get_MapFolderName")]
     public static class World_getMapFolderName {
-        static readonly string FolderName = "maps";
-        static readonly string FolderLocation = Path.GetFullPath(FolderName);
+        static readonly string FolderLocation = Paths.Get("maps");
         public static void Postfix(ref string __result) {
-            if (!Config.mapSettings.OverrideFolder) return;
-            if (!Directory.Exists(FolderName))
-                Directory.CreateDirectory(FolderName);
+            // With the launcher's workspace maps always go there: the server's identity folder is removed after the run
+            if (!Config.mapSettings.OverrideFolder && !Paths.IsWorkspace) return;
+            if (!Directory.Exists(FolderLocation))
+                Directory.CreateDirectory(FolderLocation);
 
             Logging.Info($"Override save folder to {FolderLocation}");
             __result = FolderLocation;

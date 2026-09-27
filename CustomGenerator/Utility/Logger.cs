@@ -6,7 +6,7 @@ namespace CustomGenerator.Utility
 {
     public static class Logging
     {
-        private static readonly string LogFolder = "HarmonyConfig/logs";
+        private static readonly string LogFolder = Paths.Get("HarmonyConfig", "logs");
         private static readonly string LogFile;
         private static bool isInitialized;
 

@@ -31,14 +31,17 @@ jobs:
         run: |
           msbuild CustomGenerator/CustomGenerator.csproj -p:Configuration=Release -p:RustServerDir=${{ github.workspace }}\rust\ -v:m
           msbuild CustomGenerator.Launcher/CustomGenerator.Launcher.csproj -p:Configuration=Release -v:m
+          msbuild CustomGenerator.Server/CustomGenerator.Server.csproj -p:Configuration=Release -p:RustServerDir=${{ github.workspace }}\rust\ -v:m
 
       # Same layout as the server folder: unpack the zip into the server root
       - name: Package
         run: |
           $name = if ($env:GITHUB_REF_TYPE -eq 'tag') { "CustomGenerator-$env:GITHUB_REF_NAME" } else { "CustomGenerator-$($env:GITHUB_SHA.Substring(0, 7))" }
-          New-Item -ItemType Directory package/HarmonyMods, package/mapimages/resources | Out-Null
+          New-Item -ItemType Directory package/HarmonyMods, package/mapimages/resources, package/live-server/HarmonyMods | Out-Null
           Copy-Item CustomGenerator/bin/Release/CustomGenerator.dll package/HarmonyMods/
           Copy-Item CustomGenerator.Launcher/bin/Release/CustomGeneratorLauncher.exe package/
+          # For the live server only: kept apart so it doesn't land in the generation server's HarmonyMods
+          Copy-Item CustomGenerator.Server/bin/Release/CustomGenerator.Server.dll package/live-server/HarmonyMods/
           Copy-Item Resources/* package/mapimages/resources/
           Copy-Item README.md, README_RU.md, USAGE.md, USAGE_RU.md, SWAP_MONUMENTS.md, LICENSE package/
           Compress-Archive package/* "$name.zip"

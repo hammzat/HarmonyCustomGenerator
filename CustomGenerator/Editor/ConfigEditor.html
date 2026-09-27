@@ -260,7 +260,7 @@ const UI = {
     empty: "Nothing here yet", addKey: "Add rule", keyPlaceholder: "part of name", tagPlaceholder: "type and press Enter",
     min: "Must be ≥ {0}", max: "Must be ≤ {0}", notNumber: "Enter a number", notInt: "Enter a whole number",
     sum: "Sum {0}", sumBad: "Sum {0}, will be scaled to {1}", preview: "File name: {0}",
-    banner: "<b>Stop the server before saving.</b> The mod rewrites the config when it starts. This page shows the values from the last server run ({0}); if you edited the file by hand since then, press <i>Open…</i> and pick it.",
+    banner: "<b>Don't save while a map is generating.</b> The mod rewrites the config when it starts. This page shows the values from the last run ({0}); if you edited the file by hand since then, press <i>Open…</i> and pick it.",
     bannerLang: "Keys are rewritten in the new language on the next server run.",
     startTitle: "CustomGenerator config editor", startText: "Open the <code>HarmonyConfig</code> folder of your server, or drop <code>CustomGenerator.json</code> and <code>CustomGenerator.schema.json</code> here.",
     openFolder: "Open HarmonyConfig folder", pickFiles: "Choose files", needSchema: "The schema file (CustomGenerator.schema.json) is needed as well. Run the server once with the mod to create it.",
@@ -290,9 +290,13 @@ const UI = {
     start: "Save & generate", startNoSave: "Generate", stop: "Stop", running: "Generating {0} / {1}", elapsed: "{0}", queued: n => `${n} more in queue`,
     step: "Step: {0}", idle: "Not running", doneRuns: "Finished runs", exitCode: "exit code {0}", stopped: "stopped", ok: "done",
     onlyMod: "Only mod and generation lines", mapReady: "Map {0} / {1} is ready", genStarted: "Generation started",
-    noLauncher: "Generation runs through <b>CustomGeneratorLauncher.exe</b>: put it next to RustDedicated.exe and double-click it, this editor opens with a Generate button. Or run these commands yourself:",
-    copy: "Copy", copied: "Copied", noRust: "RustDedicated wasn't found next to the launcher. Put CustomGeneratorLauncher.exe into the server folder or start it with --root <server folder>.",
+    noLauncher: "Maps are generated through <b>CustomGeneratorLauncher.exe</b>: double-click it in the mod's folder and set your Rust server folder on this tab, this editor opens with a Generate button. Or install the mod into the server by hand and run these commands in the server folder:",
+    copy: "Copy", copied: "Copied", noRust: "RustDedicated wasn't found in the server folder the launcher is in. Start the launcher from its own folder to choose a server, or pass --root <server folder>.",
     firstRun: "No config yet: generate the first map, the mod creates the config on its first run.",
+    serverTitle: "Rust server", serverPlaceholder: "Folder with RustDedicated.exe", serverSave: "Save", serverFound: "RustDedicated.exe found", serverMissing: "RustDedicated.exe not found",
+    serverHint: "Any Rust dedicated server folder, better a separate copy for generation. The launcher puts CustomGenerator.dll into its HarmonyMods only while a map is generating and removes it afterwards; config, maps, previews and logs stay in {0}.",
+    serverSaved: "Server folder saved", noServer: "Set the Rust server folder above to generate maps.",
+    log: "Log", unknownValue: "Unknown value, the mod ignores it", close: "Close", noPermission: "No permission to write the file",
     saveBlocked: "Can't save while a map is generating: the mod rewrites the config when it starts.",
   },
   ru: {
@@ -304,7 +308,7 @@ const UI = {
     empty: "Пока пусто", addKey: "Добавить правило", keyPlaceholder: "часть имени", tagPlaceholder: "введите и нажмите Enter",
     min: "Должно быть ≥ {0}", max: "Должно быть ≤ {0}", notNumber: "Введите число", notInt: "Введите целое число",
     sum: "Сумма {0}", sumBad: "Сумма {0}, будет приведена к {1}", preview: "Имя файла: {0}",
-    banner: "<b>Остановите сервер перед сохранением.</b> Мод перезаписывает конфиг при запуске. Здесь значения с последнего запуска сервера ({0}); если вы с тех пор правили файл вручную, нажмите <i>Открыть…</i> и выберите его.",
+    banner: "<b>Не сохраняйте, пока генерируется карта.</b> Мод перезаписывает конфиг при запуске. Здесь значения с последнего запуска ({0}); если вы с тех пор правили файл вручную, нажмите <i>Открыть…</i> и выберите его.",
     bannerLang: "Ключи перепишутся на новом языке при следующем запуске сервера.",
     startTitle: "Редактор конфига CustomGenerator", startText: "Откройте папку <code>HarmonyConfig</code> вашего сервера или перетащите сюда <code>CustomGenerator.json</code> и <code>CustomGenerator.schema.json</code>.",
     openFolder: "Открыть папку HarmonyConfig", pickFiles: "Выбрать файлы", needSchema: "Нужен ещё файл схемы (CustomGenerator.schema.json). Запустите сервер с модом один раз, чтобы он появился.",
@@ -330,9 +334,13 @@ const UI = {
     start: "Сохранить и сгенерировать", startNoSave: "Сгенерировать", stop: "Остановить", running: "Генерируется {0} / {1}", elapsed: "{0}", queued: n => `В очереди ещё: ${n}`,
     step: "Шаг: {0}", idle: "Не запущено", doneRuns: "Завершённые запуски", exitCode: "код выхода {0}", stopped: "остановлено", ok: "готово",
     onlyMod: "Только строки мода и генерации", mapReady: "Карта {0} / {1} готова", genStarted: "Генерация запущена",
-    noLauncher: "Генерация запускается через <b>CustomGeneratorLauncher.exe</b>: положите его рядом с RustDedicated.exe и запустите двойным щелчком — откроется этот редактор с кнопкой генерации. Или выполните команды сами:",
-    copy: "Копировать", copied: "Скопировано", noRust: "RustDedicated не найден рядом с лаунчером. Положите CustomGeneratorLauncher.exe в папку сервера или запустите с --root <папка сервера>.",
+    noLauncher: "Карты генерируются через <b>CustomGeneratorLauncher.exe</b>: запустите его двойным щелчком в папке мода и укажите на этой вкладке папку сервера Rust — откроется этот редактор с кнопкой генерации. Или поставьте мод в сервер вручную и выполните эти команды в папке сервера:",
+    copy: "Копировать", copied: "Скопировано", noRust: "RustDedicated не найден в папке сервера, где лежит лаунчер. Запустите лаунчер из его собственной папки, чтобы выбрать сервер, или передайте --root <папка сервера>.",
     firstRun: "Конфига ещё нет: сгенерируйте первую карту, мод создаст конфиг при первом запуске.",
+    serverTitle: "Сервер Rust", serverPlaceholder: "Папка с RustDedicated.exe", serverSave: "Сохранить", serverFound: "RustDedicated.exe найден", serverMissing: "RustDedicated.exe не найден",
+    serverHint: "Любая папка выделенного сервера Rust, лучше отдельная копия под генерацию. Лаунчер кладёт CustomGenerator.dll в её HarmonyMods только на время генерации и потом убирает; конфиг, карты, превью и логи остаются в {0}.",
+    serverSaved: "Папка сервера сохранена", noServer: "Укажите выше папку сервера Rust, чтобы генерировать карты.",
+    log: "Лог", unknownValue: "Неизвестное значение, мод его игнорирует", close: "Закрыть", noPermission: "Нет разрешения на запись файла",
     saveBlocked: "Нельзя сохранять, пока генерируется карта: мод перезаписывает конфиг при запуске.",
   },
 };
@@ -374,7 +382,7 @@ const PRESETS = [
 
 const S = {
   schema: null, config: null, lang: "en", handle: null, fileName: "", savedAt: "", embedded: false, dirty: false, section: null,
-  extra: { lastRun: null, prefabs: null, files: { custom: [], swap: [] }, generation: null, rustFound: false },
+  extra: { lastRun: null, prefabs: null, files: { custom: [], swap: [] }, generation: null, rustFound: false, launcher: null },
 };
 
 /* ---------- helpers ---------- */
@@ -547,7 +555,7 @@ function fieldRow(key, node, obj, onChange, ctx) {
         } }, v);
       chips.append(chip);
     }
-    for (const v of (get() || []).filter(v => !node.items.enum.includes(v))) chips.append(h("span", { class: "chip", title: "unknown value", style: "border-color: var(--bad); color: var(--bad)" }, v));
+    for (const v of (get() || []).filter(v => !node.items.enum.includes(v))) chips.append(h("span", { class: "chip", title: t("unknownValue"), style: "border-color: var(--bad); color: var(--bad)" }, v));
     control.append(chips);
   } else if (node.type === "array") {
     row.classList.add("wide");
@@ -1031,8 +1039,9 @@ function commandText() {
 
 function generateView() {
   const out = [h("h1", {}, t("genTitle")), h("p", { class: "lead" }, t("genLead"))];
+  if (API && S.extra.launcher?.workspace) out.push(serverCard());
   if (API && !S.config) out.push(h("div", { class: "banner info" }, t("firstRun")));
-  if (API && !S.extra.rustFound) out.push(h("div", { class: "banner" }, t("noRust")));
+  if (API && !S.extra.rustFound) out.push(h("div", { class: "banner" }, S.extra.launcher?.workspace ? t("noServer") : t("noRust")));
 
   const cmd = h("div", { class: "cmd" }, commandText());
   const refreshCmd = () => { cmd.textContent = commandText(); };
@@ -1049,18 +1058,34 @@ function generateView() {
     return out;
   }
 
-  const startBtn = h("button", { type: "button", class: "btn primary", onclick: startGeneration }, S.config ? t("start") : t("startNoSave"));
+  const startBtn = h("button", { type: "button", class: "btn primary", disabled: !S.extra.rustFound, onclick: startGeneration }, S.config ? t("start") : t("startNoSave"));
   const stopBtn = h("button", { type: "button", class: "btn danger", onclick: stopGeneration }, t("stop"));
   const status = h("div", { class: "progress", id: "gen-status" });
   form.querySelector(".body").append(h("div", { class: "gen-actions" }, startBtn, stopBtn, status));
 
   const logBox = h("pre", { class: "log", id: "gen-log" });
   const onlyMod = h("input", { type: "checkbox", checked: gen.onlyMod, onchange: e => { gen.onlyMod = e.target.checked; saveGen(); updateGeneration(); } });
-  out.push(h("section", { class: "card" }, h("div", { class: "head" }, h("h3", {}, "Log"), h("span", { class: "spacer", style: "flex:1" }),
+  out.push(h("section", { class: "card" }, h("div", { class: "head" }, h("h3", {}, t("log")), h("span", { class: "spacer", style: "flex:1" }),
     h("label", { style: "display:flex; gap:8px; align-items:center; font-size:12.5px; color:var(--muted)" }, h("span", { class: "switch" }, onlyMod, h("span")), t("onlyMod"))), logBox));
   out.push(h("div", { id: "gen-done" }));
   setTimeout(updateGeneration);
   return out;
+}
+
+// Workspace mode: which Rust server generates the maps
+function serverCard() {
+  const L = S.extra.launcher;
+  const input = h("input", { type: "text", value: L.server || "", placeholder: t("serverPlaceholder"), spellcheck: false, style: "flex:1" });
+  const save = async () => {
+    try { await api("PUT", "/api/settings", JSON.stringify({ server: input.value })); toast(t("serverSaved")); await refreshState(true); drawSection(); }
+    catch (e) { toast(e.message); }
+  };
+  input.addEventListener("keydown", e => { if (e.key === "Enter") save(); });
+  return h("section", { class: "card" },
+    h("div", { class: "head" }, h("h3", {}, t("serverTitle")), h("span", { class: "badge " + (S.extra.rustFound ? "on" : "alert") }, S.extra.rustFound ? t("serverFound") : t("serverMissing"))),
+    h("div", { class: "body" },
+      h("div", { style: "display:flex; gap:8px" }, input, h("button", { type: "button", class: "btn", disabled: generating(), onclick: save }, t("serverSave"))),
+      h("div", { class: "hint", style: "margin-top:8px" }, t("serverHint", L.root))));
 }
 
 async function copy(text, button) {
@@ -1082,7 +1107,7 @@ function updateGeneration() {
       ? [h("span", { class: "spinner" }), h("b", {}, t("running", g.current.size, g.current.seed)), h("span", { class: "badge" }, duration(g.current.seconds)),
          step ? h("span", { class: "hint", style: "margin:0" }, t("step", step)) : null, g.queued?.length ? h("span", { class: "badge" }, t("queued", g.queued.length)) : null]
       : [h("span", { class: "hint", style: "margin:0" }, t("idle"))]));
-    document.querySelector("#main .btn.primary")?.toggleAttribute("disabled", !!g.running);
+    document.querySelector("#main .btn.primary")?.toggleAttribute("disabled", !!g.running || !S.extra.rustFound);
     document.querySelector("#main .btn.danger")?.toggleAttribute("disabled", !g.running);
   }
   const logBox = document.getElementById("gen-log");
@@ -1173,7 +1198,7 @@ function modal(title, content, buttons) {
   const overlay = h("div", { class: "overlay", onclick: e => { if (e.target === overlay) overlay.remove(); } });
   const close = () => overlay.remove();
   overlay.append(h("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-label": title },
-    h("div", { class: "head" }, h("h2", {}, title), h("span", { style: "flex:1" }), h("button", { type: "button", class: "btn ghost small", "aria-label": "Close", onclick: close }, "×")),
+    h("div", { class: "head" }, h("h2", {}, title), h("span", { style: "flex:1" }), h("button", { type: "button", class: "btn ghost small", "aria-label": t("close"), onclick: close }, "×")),
     h("div", { class: "content" }, content),
     buttons ? h("div", { class: "foot" }, buttons(close)) : null));
   overlay.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
@@ -1217,7 +1242,7 @@ async function api(method, url, body) {
 async function refreshState(keepEdits) {
   const folder = S.config ? valueAt("CustomMonuments.Folder") : null;
   const st = await api("GET", "/api/state" + (folder ? "?custom=" + encodeURIComponent(folder) : ""));
-  S.extra = { lastRun: st.lastRun, prefabs: st.prefabs, files: st.files || { custom: [], swap: [] }, generation: st.generation, rustFound: st.rustFound };
+  S.extra = { lastRun: st.lastRun, prefabs: st.prefabs, files: st.files || { custom: [], swap: [] }, generation: st.generation, rustFound: st.rustFound, launcher: st.launcher };
   const hadConfig = !!S.config;
   if (st.schema && st.config && !(keepEdits && S.dirty)) {
     S.schema = st.schema; S.config = st.config; S.dirty = false;
@@ -1303,7 +1328,7 @@ async function save() {
     if (!S.handle && "showSaveFilePicker" in window)
       S.handle = await window.showSaveFilePicker({ suggestedName: "CustomGenerator.json", types: [{ description: "JSON", accept: { "application/json": [".json"] } }] });
     if (S.handle) {
-      if (S.handle.requestPermission && (await S.handle.requestPermission({ mode: "readwrite" })) !== "granted") throw new Error("Permission denied");
+      if (S.handle.requestPermission && (await S.handle.requestPermission({ mode: "readwrite" })) !== "granted") throw new Error(t("noPermission"));
       const writable = await S.handle.createWritable();
       await writable.write(text()); await writable.close();
       S.fileName = S.handle.name;

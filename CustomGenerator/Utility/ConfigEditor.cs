@@ -13,7 +13,7 @@ namespace CustomGenerator.Utility
     {
         private const string Resource = "ConfigEditor.html";
         private const string Token = "__CG_DATA__";
-        private const string SwapFolder = "maps/prefabs";
+        private static readonly string SwapFolder = Paths.Get("maps", "prefabs");
 
         private static string _path, _configJson, _customFolder;
         private static JObject _schema;
@@ -40,7 +40,7 @@ namespace CustomGenerator.Utility
                 ["lastRun"] = ReadJson(GenerationReport.LastRunLocation),
                 ["prefabs"] = ReadJson(GenerationReport.PrefabsLocation),
                 ["files"] = new JObject {
-                    ["custom"] = ListFiles(_customFolder, ".map", ".prefab"),
+                    ["custom"] = ListFiles(Paths.Resolve(_customFolder), ".map", ".prefab"),
                     ["swap"] = ListFiles(SwapFolder, ".map"),
                 },
             };

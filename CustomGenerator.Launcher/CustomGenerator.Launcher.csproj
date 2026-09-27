@@ -12,7 +12,10 @@
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <LangVersion>10.0</LangVersion>
-    <RustServerDir Condition=" '$(RustServerDir)' == '' ">C:\server\zazarust\steamcmd\steamapps\common\rust_dedicated\</RustServerDir>
+    <!-- 64-bit: it inspects and starts the 64-bit RustDedicated.exe -->
+    <Prefer32Bit>false</Prefer32Bit>
+    <!-- Mod folder the launcher runs from; a Release build refreshes it when it exists. Never the server: the launcher puts the DLL there only for a run -->
+    <WorkspaceDir Condition=" '$(WorkspaceDir)' == '' ">$(USERPROFILE)\Desktop\CustomGenerator\</WorkspaceDir>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -44,9 +47,8 @@
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- Same as the mod: a Release build lands in the local test server, next to RustDedicated.exe.
-       Only a warning when the launcher there is running and the file is locked. -->
-  <Target Name="CopyToServer" AfterTargets="Build" Condition=" '$(Configuration)' == 'Release' And Exists('$(RustServerDir)') ">
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(RustServerDir)" Retries="0" ContinueOnError="WarnAndContinue" />
+  <!-- Only a warning when the launcher there is running and the file is locked -->
+  <Target Name="CopyToWorkspace" AfterTargets="Build" Condition=" '$(Configuration)' == 'Release' And Exists('$(WorkspaceDir)') ">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(WorkspaceDir)" Retries="0" ContinueOnError="WarnAndContinue" />
   </Target>
 </Project>

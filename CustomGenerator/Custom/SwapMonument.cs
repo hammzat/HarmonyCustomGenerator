@@ -5,11 +5,13 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 
+using CustomGenerator.Custom;
+using CustomGenerator.Shared;
 using CustomGenerator.Utility;
 
 using static CustomGenerator.ExtConfig;
 public class SwapMonument {
-    private const string Folder = "maps/prefabs";
+    private static readonly string Folder = Paths.Get("maps", "prefabs");
 
     public static void Initiate(string path) {
         var mainMap = new WorldSerialization();
@@ -25,14 +27,16 @@ public class SwapMonument {
             return;
         }
 
-        int replaced = SwapMonuments(mainMap, files);
+        var io = new List<IOEntityInfo>();
+        int replaced = SwapMonuments(mainMap, files, io);
+        MapExtrasWriter.Write(mainMap, io, "Swap");
         string target = Config.Swap.SaveBothMaps ? Path.ChangeExtension(path, ".swapped.map") : path;
         mainMap.Save(target);
         Logging.Info($"Swap: {replaced} monuments replaced, saved to {target}");
         GenerationReport.SwapSaved(target);
     }
 
-    private static int SwapMonuments(WorldSerialization mainMap, List<Monument> files) {
+    private static int SwapMonuments(WorldSerialization mainMap, List<Monument> files, List<IOEntityInfo> io) {
         // Matches come from the original prefabs, so prefabs inserted by one swap are never swapped again
         var original = mainMap.world.prefabs.ToList();
         int total = 0;
@@ -55,12 +59,17 @@ public class SwapMonument {
                 continue;
             }
 
+            // RustEdit IO of the file, moved with the same transform as its prefabs
+            var fileIO = MapExtrasWriter.ReadRustEditIO(swapMap, file);
+            var anchor = swapMap.world.prefabs[0].position;
             foreach (var prefab in matches) {
                 mainMap.world.prefabs.Remove(prefab);
-                mainMap.world.prefabs.AddRange(MapHander.CreatePrefabFromMap(prefab.position, prefab.rotation, swapMap.world.prefabs));
+                mainMap.world.prefabs.AddRange(MapHandler.CreatePrefabFromMap(prefab.position, prefab.rotation, swapMap.world.prefabs));
+                foreach (var entity in fileIO)
+                    io.Add(MapExtrasWriter.Transform(entity, point => MapHandler.TransformPoint(prefab.position, anchor, prefab.rotation, point)));
             }
             total += matches.Count;
-            Logging.Info($"Swap: {file}: replaced {matches.Count} x '{monument.prefabShortname}' ({swapMap.world.prefabs.Count} prefabs each)");
+            Logging.Info($"Swap: {file}: replaced {matches.Count} x '{monument.prefabShortname}' ({swapMap.world.prefabs.Count} prefabs each" + (fileIO.Count > 0 ? $", {fileIO.Count} IO entities" : "") + ")");
             GenerationReport.Swap(file, matches.Count);
         }
         return total;
@@ -87,7 +96,7 @@ public class SwapMonument {
 }
 
 
-public class MapHander
+public class MapHandler
 {
     private static PrefabData CreatePrefab(uint PrefabID, VectorData position, VectorData rotation, VectorData scale, string category = "Monument")
     {
@@ -100,6 +109,12 @@ public class MapHander
             scale = scale
         };
         return prefab;
+    }
+
+    // A point of the swap file placed like its prefabs: relative to the first prefab, rotated by the replaced monument's rotation
+    public static Vector3 TransformPoint(VectorData startPos, VectorData anchor, VectorData rotation, Vector3 point) {
+        VectorData local = CalculateLocalPos(anchor, new VectorData(point.x, point.y, point.z), rotation);
+        return new Vector3(startPos.x + local.x, startPos.y + local.y, startPos.z + local.z);
     }
 
     private static VectorData CalculateLocalPos(VectorData placePos, VectorData globalPos, VectorData rotation) => RotateVector(new VectorData(globalPos.x - placePos.x, globalPos.y - placePos.y, globalPos.z - placePos.z), rotation);

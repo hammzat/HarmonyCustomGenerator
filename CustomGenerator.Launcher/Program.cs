@@ -11,8 +11,9 @@ using System.Web.Script.Serialization;
 
 namespace CustomGenerator.Launcher
 {
-    // Put next to RustDedicated.exe and double-click: serves the config editor on http://127.0.0.1:<port>/,
-    // saves the config and runs map generation from the browser. Listens on loopback only.
+    // Double-click in its own folder (unpacked release) and set the server folder in the editor, or put it next to
+    // RustDedicated.exe. Serves the config editor on http://127.0.0.1:<port>/, saves the config and runs map generation
+    // from the browser. Listens on loopback only.
     internal static class Program
     {
         public static string Root;
@@ -22,9 +23,14 @@ namespace CustomGenerator.Launcher
         private static Generator _generator;
 
         private static int Main(string[] args) {
-            Root = Path.GetFullPath(Arg(args, "--root") ?? AppDomain.CurrentDomain.BaseDirectory);
+            // No trailing separator: it would escape the closing quote when the path is passed on a command line
+            Root = Generator.LongPath(Arg(args, "--root") ?? AppDomain.CurrentDomain.BaseDirectory).TrimEnd('\\', '/');
             int port = int.TryParse(Arg(args, "--port"), out int p) ? p : 28190;
-            _generator = new Generator(Root);
+            string server = Arg(args, "--server");
+            _generator = new Generator(Root, server != null ? Path.GetFullPath(server) : LoadSettings().TryGetValue("server", out var s) ? s as string : null);
+            if (server != null) SaveSettings(_generator.ServerDir);
+            // A copy of the mod left in the server by a crashed launcher must not stay there
+            _generator.Cleanup();
 
             TcpListener listener = null;
             for (int i = 0; i < 20 && listener == null; i++) {
@@ -35,8 +41,8 @@ namespace CustomGenerator.Launcher
 
             string url = $"http://127.0.0.1:{Port}/";
             Console.WriteLine("CustomGenerator launcher");
-            Console.WriteLine($"  Server folder: {Root}");
-            Console.WriteLine(_generator.Executable != null ? $"  Rust server:   {_generator.Executable}" : "  Rust server:   NOT FOUND - put the launcher next to RustDedicated.exe or pass --root <folder>");
+            Console.WriteLine($"  Files:         {Root}");
+            Console.WriteLine(_generator.Executable != null ? $"  Rust server:   {_generator.Executable}" : "  Rust server:   not set - set the server folder in the editor (Generate tab)");
             Console.WriteLine($"  Editor:        {url}");
             Console.WriteLine("Keep this window open while you use the editor. Ctrl+C to quit.");
             if (!args.Contains("--no-browser")) {
@@ -87,6 +93,8 @@ namespace CustomGenerator.Launcher
                     return SaveConfig(request.Body);
                 case "POST /api/generate":
                     return Generate(request.Body);
+                case "PUT /api/settings":
+                    return SetServer(request.Body);
                 case "GET /api/generation":
                     return Response.RawJson(Json.Serialize(_generator.Status()));
                 case "POST /api/stop":
@@ -115,6 +123,9 @@ namespace CustomGenerator.Launcher
             json.Append(",\"files\":").Append(Json.Serialize(Files(customFolder)));
             json.Append(",\"generation\":").Append(Json.Serialize(_generator.Status()));
             json.Append(",\"rustFound\":").Append(_generator.Executable != null ? "true" : "false");
+            json.Append(",\"launcher\":").Append(Json.Serialize(new Dictionary<string, object> {
+                ["workspace"] = _generator.Workspace, ["root"] = Root, ["server"] = _generator.ServerDir,
+            }));
             return json.Append('}').ToString();
         }
 
@@ -144,6 +155,34 @@ namespace CustomGenerator.Launcher
             } catch { return null; }
         }
 
+        private static string SettingsPath => Path.Combine(ConfigDir, "launcher.json");
+
+        private static Dictionary<string, object> LoadSettings() {
+            try { return Json.DeserializeObject(File.ReadAllText(SettingsPath)) as Dictionary<string, object> ?? new Dictionary<string, object>(); }
+            catch { return new Dictionary<string, object>(); }
+        }
+
+        private static void SaveSettings(string server) {
+            Directory.CreateDirectory(ConfigDir);
+            File.WriteAllText(SettingsPath, Json.Serialize(new Dictionary<string, object> { ["server"] = server }), Utf8);
+        }
+
+        // Server folder for workspace mode: must have RustDedicated in it
+        private static Response SetServer(byte[] body) {
+            if (!_generator.Workspace) return Response.Error(400, "The launcher is in the server folder, it always uses that server");
+            if (_generator.Running) return Response.Error(409, "Generation is running");
+            var data = Json.DeserializeObject(Utf8.GetString(body)) as Dictionary<string, object>;
+            string path = (data != null && data.TryGetValue("server", out var v) ? v as string : null)?.Trim().Trim('"');
+            if (string.IsNullOrEmpty(path)) return Response.Error(400, "Enter the server folder");
+            try { path = Generator.LongPath(path); } catch { return Response.Error(400, "Not a valid path: " + path); }
+            if (Generator.FindExecutable(path) == null) return Response.Error(400, "RustDedicated.exe wasn't found in " + path);
+            if (string.Equals(path.TrimEnd('\\', '/'), Root.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase)) return Response.Error(400, "That's the launcher's own folder");
+            _generator.Cleanup();
+            _generator.ServerDir = path;
+            SaveSettings(path);
+            return Response.RawJson("{\"ok\":true}");
+        }
+
         private static Response SaveConfig(byte[] body) {
             if (_generator.Running) return Response.Error(409, "Generation is running, the mod rewrites the config when it starts. Stop it or wait.");
             string text = Utf8.GetString(body);
@@ -156,7 +195,6 @@ namespace CustomGenerator.Launcher
         }
 
         private static Response Generate(byte[] body) {
-            if (_generator.Executable == null) return Response.Error(400, "RustDedicated not found in " + Root);
             var data = Json.DeserializeObject(Utf8.GetString(body)) as Dictionary<string, object>;
             var runs = new List<Run>();
             var list = data != null && data.TryGetValue("runs", out var r) ? r as object[] : null;

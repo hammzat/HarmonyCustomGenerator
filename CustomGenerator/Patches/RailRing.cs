@@ -18,13 +18,13 @@ namespace CustomGenerator.Generators
             if (!Config.Generator.Rail.ShouldChange) return;
             if (!Config.Generator.Rail.Enabled) {
                 MinSize(__instance) = int.MaxValue;
-                Logging.Generation($"RailRing MinWorldSize changed to max!");
+                Logging.Generation("Rail ring disabled");
                 return;
             }
             if (!Config.Generator.Rail.GenerateRing) return;
 
             MinSize(__instance) = 0;
-            Logging.Generation($"RailRing MinWorldSize changed to 0!");
+            Logging.Generation("Rail ring on any map size");
         }
 
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
@@ -60,7 +60,7 @@ namespace CustomGenerator.Generators
             if (Config.Generator.Rail.GenerateSideMonuments) return;
 
             MinSize(__instance) = int.MaxValue;
-            Logging.Generation($"RailMonuments MinWorldSize changed to max!");
+            Logging.Generation("Railside monuments disabled");
         }
     }
 

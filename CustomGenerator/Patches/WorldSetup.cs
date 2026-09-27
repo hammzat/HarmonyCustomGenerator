@@ -22,8 +22,7 @@ namespace CustomGenerator.Patches {
             tempData.terrainPath = (TerrainPath)_terrainPath.GetValue(__instance);
 
             if (tempData.terrainPath == null || tempData.terrainTexturing == null || tempData.terrainMeta == null)
-                Logging.Error("One of components is null!");
-            Logging.Info("Saved TerrainTexturing instance!");
+                Logging.Error("Terrain components not found, the map image will fail");
         }
     }
 

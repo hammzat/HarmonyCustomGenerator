@@ -5,7 +5,7 @@
 
 Allows you to generate semi-custom maps on default Rust generator.
 
-Download the latest build from [Releases](https://github.com/publicrust/HarmonyCustomGenerator/releases). For installation, full config reference and monument swap instructions, see [USAGE.md](USAGE.md).
+Download the latest build from [Releases](https://github.com/hammzat/HarmonyCustomGenerator/releases). For installation, full config reference and monument swap instructions, see [USAGE.md](USAGE.md).
 
 > ⚠️ The mod is for **map generation only**: once the map is saved it shuts the server down. Don't keep it on a live server.
 
@@ -61,6 +61,7 @@ For help, report issue and etc. join [our discord](https://discord.gg/xUdpkm8RUS
   - Place your own RustEdit monuments (`.map` or `.prefab`) at new spots, with their terrain
   - Stamp or flatten terrain, copy textures, topology and holes
   - Placement checks: height, slope, distances, biome/topology filter
+- [x] RustEdit IO (wires) of custom and swapped monuments, wired on the live server by `CustomGenerator.Server.dll`
 - [x] Monument Swapping
   - Replace vanilla monuments with custom ones
   - Swap specific monument types (e.g., replace Outpost with custom version)
@@ -73,7 +74,10 @@ For help, report issue and etc. join [our discord](https://discord.gg/xUdpkm8RUS
 - [x] Config validation with warnings in the log, automatic backup on update
 
 ### Configuration
-All features are configured in `HarmonyConfig/CustomGenerator.json` (created on the first run). The easiest way is `CustomGeneratorLauncher.exe` from the release: it opens the config editor in your browser and generates maps from there. Every option is described in [USAGE.md](USAGE.md), and monument swapping has its own section: [Monument swap](USAGE.md#monument-swap).
+All features are configured in `HarmonyConfig/CustomGenerator.json` (created on the first run). The easiest way: unpack the release into any folder and run `CustomGeneratorLauncher.exe`. It opens the config editor in your browser and generates maps with your Rust server, which gets the mod only for the time of a generation. Every option is described in [USAGE.md](USAGE.md), and monument swapping has its own section: [Monument swap](USAGE.md#monument-swap).
+
+### License
+[MIT](LICENSE) with the [Commons Clause](https://commonsclause.com/): use it, change it, fork it and share it for free, including on servers that make money (VIP, donations). What isn't allowed is selling the mod itself, or a paid product or service built mostly on it (for example, paid map generation with this mod). Keep the license and the copyright notice in copies.
 
 ------
 ### Authors and Credits

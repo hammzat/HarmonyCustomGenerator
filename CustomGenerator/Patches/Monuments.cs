@@ -23,7 +23,7 @@ namespace CustomGenerator.Generators
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(PlaceMonuments), nameof(PlaceMonuments.Process)); }
         private static bool Prefix(PlaceMonuments __instance) {
             if ((Config.Generator.RemoveTunnelsEntrances || Config.Generator.RemoveTunnels) && __instance.ResourceFolder == "tunnel-entrance") {
-                Logging.Generation("Tunnel Entrances off");
+                Logging.Generation("Tunnel entrances disabled");
                 MinWorldSize(__instance) = 999999;
                 //return false;
             }
@@ -33,21 +33,21 @@ namespace CustomGenerator.Generators
                 {
                     case "oasis":
                         {
-                            Logging.Generation($"UNIQUE ENVIROMENT - Changing generating oasis to {Config.Generator.UniqueEnviroment.GenerateOasis}");
+                            Logging.Generation($"Unique environment: oases {(Config.Generator.UniqueEnviroment.GenerateOasis ? "on any map size" : "disabled")}");
                             if (Config.Generator.UniqueEnviroment.GenerateOasis) MinWorldSize(__instance) = 0;
                             else MinWorldSize(__instance) = 999999;
                             break;
                         }
                     case "canyon":
                         {
-                            Logging.Generation($"UNIQUE ENVIROMENT - Changing generating canyon to {Config.Generator.UniqueEnviroment.GenerateCanyons}");
+                            Logging.Generation($"Unique environment: canyons {(Config.Generator.UniqueEnviroment.GenerateCanyons ? "on any map size" : "disabled")}");
                             if (Config.Generator.UniqueEnviroment.GenerateCanyons) MinWorldSize(__instance) = 0;
                             else MinWorldSize(__instance) = 999999;
                             break;
                         }
                     case "lake":
                         {
-                            Logging.Generation($"UNIQUE ENVIROMENT - Changing generating lake to {Config.Generator.UniqueEnviroment.GenerateLakes}");
+                            Logging.Generation($"Unique environment: lakes {(Config.Generator.UniqueEnviroment.GenerateLakes ? "on any map size" : "disabled")}");
                             if (Config.Generator.UniqueEnviroment.GenerateLakes) MinWorldSize(__instance) = 0;
                             else MinWorldSize(__instance) = 999999;
                             break;
@@ -92,7 +92,7 @@ namespace CustomGenerator.Generators
             if (monument.HasPrefabRules)
                 Prefab_FindPrefabNames.Active = monument;
 
-            Logging.Generation($"Changed instance values for {monument.Description}");
+            Logging.Generation($"{monument.Description}: group settings applied");
             return true;
         }
 
@@ -174,7 +174,7 @@ namespace CustomGenerator.Generators
         private static bool Prefix(PlaceDecorUniform __instance)
         {
             if (!Config.Generator.RemoveCarWrecks) return true;
-            if (__instance.Description == "Roadside Wrecks") { Logging.Generation("Removing wrecks."); return false; }
+            if (__instance.Description == "Roadside Wrecks") { Logging.Generation("Roadside wrecks disabled"); return false; }
 
             return true;
         }
@@ -184,11 +184,10 @@ namespace CustomGenerator.Generators
     class WorldSetup_InitCoroutine
     {
         private static MethodBase TargetMethod() { return AccessTools.Method(typeof(WorldSetup), nameof(WorldSetup.InitCoroutine)); }
-        private static FieldInfo _monuments = AccessTools.TypeByName("PlaceMonuments").GetField("Monuments", BindingFlags.NonPublic);
         private static bool Prefix(WorldSetup __instance) {
             // Runs every time (even with Monuments disabled), so the list is ready to edit after the first run
             PlaceMonuments[] placeMonuments = SingletonComponent<WorldSetup>.Instance.GetComponentsInChildren<ProceduralComponent>(true).OfType<PlaceMonuments>().ToArray();
-            Logging.Info($"Found {placeMonuments.Length} monument groups.");
+            Logging.Info($"Found {placeMonuments.Length} monument groups");
             var found = new List<ExtConfig.Monument>();
             foreach (var mon in placeMonuments) {
                 found.Add(new ExtConfig.Monument { 

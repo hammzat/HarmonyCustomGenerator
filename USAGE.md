@@ -13,8 +13,9 @@ How to install the mod, set up the config and swap monuments.
 8. [Monuments](#monuments)
 9. [Custom monuments](#custom-monuments)
 10. [Monument swap](#monument-swap)
-11. [Recipes](#recipes)
-12. [Troubleshooting](#troubleshooting)
+11. [Live server: RustEdit IO](#live-server-rustedit-io)
+12. [Recipes](#recipes)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -22,49 +23,65 @@ How to install the mod, set up the config and swap monuments.
 
 The mod hooks into the vanilla Rust map generator through Harmony and changes its parameters on the fly. The map stays procedural, but you control roads, rivers, monuments, biomes and more.
 
-> ⚠️ **The mod is for map generation only.** Once the map is generated and saved, the mod renders a preview image and **shuts the server down**. Don't leave `CustomGenerator.dll` in `HarmonyMods` on a live server: the server will generate a map and exit, and an auto-restart script will loop forever.
+> ⚠️ **The mod is for map generation only.** Once the map is saved, the mod renders a preview and **shuts the server down**, so it must never stay in the `HarmonyMods` of a live server. The launcher takes care of that: it puts the mod into the server only for the time of a generation.
 >
-> The usual workflow: generate a `.map` on a separate server copy, then put it on your live server with `server.levelurl` or a local `server.level`.
+> Then put the generated `.map` on your live server with `server.levelurl` or a local `server.level`.
 
 ---
 
 ## Installation
 
-1. You need a Rust Dedicated Server. Harmony 2.3 is already included.
-2. Download `CustomGenerator-<version>.zip` from [Releases](https://github.com/publicrust/HarmonyCustomGenerator/releases) and unpack it into the server folder, next to `RustDedicated.exe`. It contains `HarmonyMods/CustomGenerator.dll`, the [launcher](#config-editor) `CustomGeneratorLauncher.exe` and the preview fonts in `mapimages/resources/`.
-3. That's it. The config is created on the first run.
+You need a Rust dedicated server (Harmony 2.3 is included). A separate copy for generation is best, but any server works while it isn't running.
 
-Where things are (all paths are relative to the server folder that contains `RustDedicated.exe`):
+**With the launcher (recommended)**
+1. Download `CustomGenerator-<version>.zip` from [Releases](https://github.com/hammzat/HarmonyCustomGenerator/releases) and unpack it into any folder, for example on the desktop. This is the **mod folder**: your config, monuments, maps and previews live here.
+2. Double-click `CustomGeneratorLauncher.exe`. The [config editor](#config-editor) opens in your browser.
+3. On the **Generate** tab set the folder of your Rust server (the one with `RustDedicated.exe`), pick a size and a seed and press **Save & generate**.
+
+The launcher copies `HarmonyMods/CustomGenerator.dll` into the server's `HarmonyMods` only while a map is generating, runs the server on its own ports with a temporary identity, and removes both afterwards. Nothing else is written to the server. It refuses to generate while a server from that folder is running, or when that server already has `CustomGenerator.dll` installed by hand.
+
+**By hand, without the launcher**
+
+Unpack the archive into the server folder, next to `RustDedicated.exe`, and start the server yourself (see [First run](#first-run-and-generation)). The mod folder is then the server folder. Remove `HarmonyMods/CustomGenerator.dll` before running that server as a live one. The launcher works from the server folder too: it uses that server and doesn't move the DLL.
+
+Where things are (paths are relative to the mod folder):
 
 | Path | Contents |
 |---|---|
-| `HarmonyMods/CustomGenerator.dll` | The mod |
 | `CustomGeneratorLauncher.exe` | [Config editor](#config-editor) with map generation from the browser |
+| `HarmonyMods/CustomGenerator.dll` | The mod. With the launcher it goes into the server only for the time of a generation |
 | `HarmonyConfig/CustomGenerator.json` | Config |
+| `HarmonyConfig/launcher.json` | Launcher settings: the server folder |
 | `HarmonyConfig/CustomGenerator.schema.json` | Config schema for editor hints (regenerated, don't edit) |
 | `HarmonyConfig/CustomGenerator.editor.html` | [Config editor](#config-editor): open it in a browser (regenerated, don't edit) |
 | `HarmonyConfig/CustomGenerator.lastrun.json`, `CustomGenerator.prefabs.json` | Last run and the prefab names of each group, for the editor (regenerated) |
-| `HarmonyConfig/logs/cgen_*.log` | Mod logs, one file per run |
+| `HarmonyConfig/logs/` | Mod logs (`cgen_*.log`) and server logs of launcher runs (`launcher_*.log`) |
 | `maps/` | Generated maps (`.map`) and generation reports (`.report.txt`) |
-| `maps/prefabs/` | Your monuments for swapping |
+| `maps/custom/` | Your [custom monuments](#custom-monuments) |
+| `maps/prefabs/` | Your monuments for [swapping](#monument-swap) |
 | `mapimages/` | Map previews (`.png`) |
 | `mapimages/resources/` | Fonts for previews (in the release archive, otherwise downloaded automatically) |
+| `live-server/HarmonyMods/CustomGenerator.Server.dll` | For the [live server](#live-server-rustedit-io), not for generation |
 
 ---
 
 ## First run and generation
 
+**With the launcher:** pick a size and a seed on the **Generate** tab and press **Save & generate**. The first run creates `HarmonyConfig/CustomGenerator.json` with the default settings: change them in the editor and generate again. Every run is a new map.
+
+**By hand:**
 1. Start the server with the `+server.worldsize` and `+server.seed` you want:
    ```bat
    RustDedicated.exe -batchmode -nographics +server.identity gen +server.worldsize 4000 +server.seed 12345 +server.level "Procedural Map"
    ```
 2. The mod creates `HarmonyConfig/CustomGenerator.json`, generates a map with the default settings and shuts the server down.
 3. Edit the config and start the server again. Every run generates a new map.
-4. The map is saved to `maps/CustomGenerator<size>_<seed>.map`, the preview to `mapimages/`, and the [generation report](#generation-report) to `maps/CustomGenerator<size>_<seed>.report.txt`.
+
+The map is saved to `maps/CustomGenerator<size>_<seed>.map`, the preview to `mapimages/`, and the [generation report](#generation-report) to `maps/CustomGenerator<size>_<seed>.report.txt`.
 
 A 4000 map takes about 5–10 minutes to generate, plus about a minute to render the preview.
 
-> Seed and size come from the server launch parameters, not from the mod config.
+> Size and seed aren't in the mod config: they're set on the Generate tab of the launcher, or as server launch parameters by hand.
 
 ### Generation report
 At the end of every run the mod prints a summary to the log and saves it next to the map as `<map name>.report.txt`:
@@ -122,7 +139,7 @@ This guide uses English keys, with the Russian key in parentheses where it helps
 ### Config editor
 The easiest way to change settings and generate maps. There are two ways to open it:
 
-- **With the launcher (recommended):** double-click `CustomGeneratorLauncher.exe` in the server folder (it's in the release archive). It opens the editor in your browser at `http://127.0.0.1:28190/` and can **generate maps** right from the page. Keep its window open while you work.
+- **With the launcher (recommended):** double-click `CustomGeneratorLauncher.exe` in the mod folder (see [Installation](#installation)). It opens the editor in your browser at `http://127.0.0.1:28190/` and can **generate maps** right from the page. Keep its window open while you work.
 - **As a file:** on every run the mod writes `HarmonyConfig/CustomGenerator.editor.html`. Double-click it to edit the config offline, without generation.
 
 What's inside:
@@ -134,9 +151,9 @@ What's inside:
 - **✦ Presets:** ready-made recipes (no rivers with rings, more snow, 5 harbors, no lighthouses, clean roads…). Each shows exactly what it changes before you apply it.
 - **Save** (Ctrl+S): through the launcher straight to `HarmonyConfig/CustomGenerator.json` (the previous one is kept as `.bak`). As a file, in Chrome and Edge to the file you pick, in other browsers as a download.
 
-Don't save while the server is running: the mod rewrites the config when it starts. The launcher blocks saving while it's generating. The file version shows the values from the last server run; if you edited the config by hand since then, press **Open…** and pick it.
+Don't save while a map is generating: the mod rewrites the config when it starts. The launcher blocks saving while it's generating. The file version shows the values from the last run; if you edited the config by hand since then, press **Open…** and pick it.
 
-The launcher listens only on `127.0.0.1` and accepts requests only from its own page. Options: `--port <n>` (default 28190), `--root <server folder>` if it isn't next to `RustDedicated.exe`, `--no-browser`.
+The launcher listens only on `127.0.0.1` and accepts requests only from its own page. Options: `--port <n>` (default 28190), `--server <folder>` to set the Rust server folder, `--root <folder>` to use another mod folder, `--no-browser`.
 
 ### Editor hints
 Next to the config the mod writes `CustomGenerator.schema.json`, and the config's first line links to it (`"$schema"`). Open the config in **VS Code** (or another editor with JSON Schema support) and you get:
@@ -167,7 +184,7 @@ The mod reads and re-saves the config on every run, so the file formatting may c
 |---|---|---|
 | `Generate new map everytime` | `true` | Don't load a previously generated map from disk, generate a new one every time |
 | `Override Map Sizes (9000 not be changed to 6000)` | `true` | Allow sizes below 1000 and above 6000. Without it Rust clamps the size |
-| `Override Map Folder (saves to <Server Root>/maps/)` | `true` | Save the map to `<server folder>/maps/` |
+| `Override Map Folder (saves to <Server Root>/maps/)` | `true` | Save the map to `maps/` of the mod folder. With the launcher maps always go there |
 | `Override Map Name` | `true` | Name the map file using the template below |
 | `Map Name ({0} - size, {1} - seed)` | `CustomGenerator{0}_{1}` | Name template: `{0}` is the size, `{1}` is the seed. `.map` is appended automatically |
 
@@ -451,7 +468,7 @@ Adds your own monuments made in RustEdit to the map as **new** monuments, togeth
 }
 ```
 
-`Enabled` turns the whole section on, the folder is where your files are (`maps/custom` by default). Each `List` entry is one monument file.
+`Enabled` turns the whole section on, the folder is where your files are, relative to the mod folder (`maps/custom` by default). Each `List` entry is one monument file.
 
 ### Preparing the file
 
@@ -467,6 +484,8 @@ Two formats are supported. Put the file in the folder and write its name in `Fil
 - If RustEdit saved the terrain next to the prefab (`<name>.prefab.heights`, `.splat0`, `.splat1`, `.alpha`, `.topology`), keep those files next to the `.prefab` and they are used. Without them only the prefabs are placed, and `Stamp` works like `Flatten`.
 
 Prefabs that don't exist in the current Rust version and prefabs with broken coordinates (NaN) are skipped with a warning in the log.
+
+IO (wires) of the file is saved into the map and works with [CustomGenerator.Server](#live-server-rustedit-io) on the live server.
 
 ### Fields
 
@@ -542,6 +561,8 @@ What is **not** transferred:
 - roads and rails: they stay connected to the original monument's layout;
 - the preview in `mapimages/`: it's rendered before the swap and shows the **original** monuments.
 
+IO (wires) of your file is carried over and works with [CustomGenerator.Server](#live-server-rustedit-io) on the live server. Shops of vending machines aren't carried over yet.
+
 ### Step 1. Build the monument in RustEdit
 
 **Option A: based on the original** (you add objects around a vanilla monument):
@@ -572,7 +593,7 @@ Examples: `harbor_1.prefab.map`, `fishing_village_c.prefab.map`, `gas_station_1.
 ### Step 3. Put the file in place
 
 ```
-<server folder>/maps/prefabs/harbor_1.prefab.map
+<mod folder>/maps/prefabs/harbor_1.prefab.map
 ```
 The folder is created automatically on the first swap. You can have any number of files, and each one replaces **every** matching monument on the map.
 
@@ -581,6 +602,38 @@ Run a generation. `[SWAP MN]` lines appear in the server log. Check the result b
 
 ### Combining swap with monument settings
 They work together. For example, make 3 harbors with `PrefabCopies` and replace every `harbor_1` with your version: the swap replaces **each** copy.
+
+---
+
+## Live server: RustEdit IO
+
+`CustomGenerator.Server.dll` is a separate mod for the **live** server that runs the map, not for the generation server.
+
+Monuments made in RustEdit can have IO: wires between generators, switches, lamps, card readers, doors and so on. Vanilla Rust doesn't keep it in the map, and RustEdit's own IO data can't be carried into a generated map. So CustomGenerator saves the IO of your monuments into the map in its own format, and `CustomGenerator.Server` wires everything up when the live server starts.
+
+What is carried over:
+- custom monuments: IO from `.map` and `.prefab` files;
+- swap: IO from `maps/prefabs/*.prefab.map`;
+- connections, timer length, RF frequency, branch amount, counter target and passthrough, card reader access level, CCTV identifier, phone name, turret peacekeeper mode.
+
+Not yet: vending machine shops, turret weapons and unlimited ammo, elevator floors, door effects. Wires work but aren't drawn in the world.
+
+**Installation on the live server:**
+1. Take `live-server/HarmonyMods/CustomGenerator.Server.dll` from the release archive and put it into the live server's `HarmonyMods/`.
+2. Use the generated map as usual (`server.levelurl`).
+
+It doesn't need Oxide or Carbon and works next to the RustEdit extension: they read different data.
+
+The generation log shows what was saved, e.g. `Custom monuments: 19 IO entities saved to the map for CustomGenerator.Server`. The live server log shows the result:
+```
+[CGen Server] IO: 19/19 entities found, 19 connections made
+[CGen Server] IO: 6/19 entities have power
+```
+"Have power" counts what is powered right after the start: entities behind sensors, buttons or empty fuse boxes get power only when a player uses them.
+
+The mod runs on every start and only adds what's missing. Rust doesn't save static map entities (like `generator.static`), so their wires are restored each time; connections already in the save are left alone.
+
+> If a Rust update changed the number of slots of a prefab, some connections can't be made. The log says which one, e.g. `generator.static has 6 outputs now, the monument uses output 6`. Re-save the monument in the current RustEdit.
 
 ---
 
@@ -628,6 +681,8 @@ They work together. For example, make 3 harbors with `PrefabCopies` and replace 
 | Problem | What to check |
 |---|---|
 | The server shuts down right after starting | That's by design: the mod generates a map and shuts the server down. Remove `CustomGenerator.dll` from `HarmonyMods` to run a normal server |
+| Launcher: "The server already has CustomGenerator.dll in HarmonyMods, installed by hand" | Remove `HarmonyMods/CustomGenerator.dll` from the server: the launcher puts it there itself for the time of a generation |
+| Launcher: "A server is running from ..." | Stop that server or set another copy on the Generate tab: the launcher won't put the generator into a running server |
 | A setting has no effect | Is `ShouldChange: true` set in that block or group? Any `[WARN]` lines in `HarmonyConfig/logs`? |
 | The config "reset itself" | The JSON was probably broken. Look for `CustomGenerator.json.broken-*` next to it |
 | Fewer monuments than `TargetCount` | Not enough room: lower `MinDistance*`, loosen `Filter`, use a bigger map. Duplicates need `PrefabCopies` |
@@ -637,6 +692,7 @@ They work together. For example, make 3 harbors with `PrefabCopies` and replace 
 | A swapped monument is shifted, rotated or underground | Is the original or the SpawnPoint first in the hierarchy? Is it unrotated? Does the SpawnPoint match the original's center, height included? |
 | A custom monument wasn't placed | Look for `no suitable spot found` in the log: lower the distances, raise `MaxHeightDifference`, widen `MinHeight`–`MaxHeight`, loosen `Filter`, use a bigger map. File errors are logged too |
 | A custom monument floats or is buried | `.map`: is the anchor (first prefab) on the ground? `.prefab`: is `y = 0` the ground level? Try `"HeightMode": "Flatten"` |
+| Monument IO doesn't work on the live server | Is `CustomGenerator.Server.dll` in the live server's `HarmonyMods`? Look for `[CGen Server]` lines in its log |
 | The preview shows the old monuments | Expected: the preview is rendered before the swap. Check the result in RustEdit |
 | No preview or a font error | The fonts come with the release archive. Otherwise the mod downloads them, so without internet access copy them from the repository's `Resources/` folder to `mapimages/resources/`. Also check `Map Image → Enabled` |
 | A map above 6000 looks broken | The Rust client doesn't support such sizes, stay at 6000 or below |
