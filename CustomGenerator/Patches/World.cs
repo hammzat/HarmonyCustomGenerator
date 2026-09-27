@@ -41,12 +41,12 @@ namespace CustomGenerator.Generators
     }
     [HarmonyPatch(typeof(World), "get_MapFolderName")]
     public static class World_getMapFolderName {
-        static readonly string FolderName = "maps";
-        static readonly string FolderLocation = Path.GetFullPath(FolderName);
+        static readonly string FolderLocation = Paths.Get("maps");
         public static void Postfix(ref string __result) {
-            if (!Config.mapSettings.OverrideFolder) return;
-            if (!Directory.Exists(FolderName))
-                Directory.CreateDirectory(FolderName);
+            // With the launcher's workspace maps always go there: the server's identity folder is removed after the run
+            if (!Config.mapSettings.OverrideFolder && !Paths.IsWorkspace) return;
+            if (!Directory.Exists(FolderLocation))
+                Directory.CreateDirectory(FolderLocation);
 
             Logging.Info($"Override save folder to {FolderLocation}");
             __result = FolderLocation;

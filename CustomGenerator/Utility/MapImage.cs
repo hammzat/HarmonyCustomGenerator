@@ -28,10 +28,8 @@ namespace CustomGenerator.Utility {
             {"dinprobold.otf", "https://raw.githubusercontent.com/hammzat/HarmonyCustomGenerator/main/Resources/dinprobold.otf"},
         };
         private static void CheckResources() {
-            if (!Directory.Exists("mapimages")) Directory.CreateDirectory("mapimages");
-            if (!Directory.Exists("mapimages/resources")) Directory.CreateDirectory("mapimages/resources");
-
-            string path = "mapimages/resources";
+            string path = Paths.Get("mapimages", "resources");
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             foreach (var resource in RequirementResources) {
                 if (File.Exists(Path.Combine(path, resource.Key))) continue;
 
@@ -58,7 +56,7 @@ namespace CustomGenerator.Utility {
 
             // Named after the saved map, whatever Override Name/Folder are
             string mapName = Path.GetFileNameWithoutExtension(World.MapFileName);
-            string fullPath = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, $"mapimages/{mapName}.png"));
+            string fullPath = Paths.Get("mapimages", mapName + ".png");
             File.WriteAllBytes(fullPath, array);
             Logging.Info($"Generated Map image: {fullPath}");
             GenerationReport.Image(fullPath);
@@ -67,9 +65,9 @@ namespace CustomGenerator.Utility {
 
     // Original Facepunch Code && MJSU plugin - Rust Map Api 
     public static class MapImageRender {
-        private static readonly string PermanentMarkerFont = "mapimages/resources/PermanentMarker.ttf";
-        private static readonly string DinProFont = "mapimages/resources/dinpro.otf";
-        private static readonly string DinProFontBold = "mapimages/resources/dinprobold.otf";
+        private static readonly string PermanentMarkerFont = Paths.Get("mapimages", "resources", "PermanentMarker.ttf");
+        private static readonly string DinProFont = Paths.Get("mapimages", "resources", "dinpro.otf");
+        private static readonly string DinProFontBold = Paths.Get("mapimages", "resources", "dinprobold.otf");
         private static readonly Vector4 StartColor = new Vector4(0.286274523f, 23f / 85f, 0.247058839f, 1f);
         private static readonly Vector4 WaterColor = new Vector4(0.16941601f, 0.317557573f, 0.362000018f, 1f);
         private static readonly Vector4 GravelColor = new Vector4(0.25f, 37f / 152f, 0.220394745f, 1f);

@@ -8,7 +8,7 @@ This guide has moved into the main documentation, which is kept up to date with 
 Quick checklist:
 1. Build the monument in RustEdit. The first object in the hierarchy is the original monument or a SpawnPoint at (0, 0, 0), without rotation.
 2. Save it as `<vanilla prefab name>.prefab.map`, for example `harbor_1.prefab.map`.
-3. Put it in `<server folder>/maps/prefabs/`.
+3. Put it in `maps/prefabs/` of the mod folder (the launcher's folder, or the server folder if you installed the mod there by hand).
 4. In `HarmonyConfig/CustomGenerator.json` set `"Swap Monuments": { "Enabled": true }`.
 5. Generate the map and check the result (`<name>.swapped.map` if `Save both maps` is on) in RustEdit.
 

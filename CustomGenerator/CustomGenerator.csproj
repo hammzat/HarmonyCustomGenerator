@@ -13,7 +13,8 @@
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <RustServerDir Condition=" '$(RustServerDir)' == '' ">C:\server\zazarust\steamcmd\steamapps\common\rust_dedicated\</RustServerDir>
-    <AdditionalOutputPath>$(RustServerDir)HarmonyMods\</AdditionalOutputPath>
+    <!-- Mod folder the launcher runs from; a Release build refreshes it when it exists. Never the server: the launcher puts the DLL there only for a run -->
+    <WorkspaceDir Condition=" '$(WorkspaceDir)' == '' ">$(USERPROFILE)\Desktop\CustomGenerator\</WorkspaceDir>
     <LangVersion>10.0</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -54,6 +55,7 @@
     <Compile Include="Utility\GenerationReport.cs" />
     <Compile Include="Utility\Logger.cs" />
     <Compile Include="Utility\MapImage.cs" />
+    <Compile Include="Utility\Paths.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Properties\.editorconfig" />
@@ -413,13 +415,7 @@
     </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <PropertyGroup>
-      <PostBuildCmd>if $(Configuration) == Release (
-        echo Copying CustomGenerator.dll to additional output directory...
-        xcopy "$(TargetDir)CustomGenerator.dll" "$(AdditionalOutputPath)" /Y
-      )</PostBuildCmd>
-    </PropertyGroup>
-    <Exec Command="$(PostBuildCmd)" />
+  <Target Name="CopyToWorkspace" AfterTargets="Build" Condition=" '$(Configuration)' == 'Release' And Exists('$(WorkspaceDir)') ">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(WorkspaceDir)HarmonyMods" ContinueOnError="WarnAndContinue" />
   </Target>
 </Project>

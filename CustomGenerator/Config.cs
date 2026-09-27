@@ -16,9 +16,9 @@ namespace CustomGenerator
         public static TempData tempData;
         private static readonly string CurrentVersion = "0.2.5";
 
-        private static readonly string Location = Path.Combine("HarmonyConfig", "CustomGenerator.json");
-        private static readonly string SchemaLocation = Path.Combine("HarmonyConfig", "CustomGenerator.schema.json");
-        private static readonly string EditorLocation = Path.Combine("HarmonyConfig", "CustomGenerator.editor.html");
+        private static readonly string Location = Paths.Get("HarmonyConfig", "CustomGenerator.json");
+        private static readonly string SchemaLocation = Paths.Get("HarmonyConfig", "CustomGenerator.schema.json");
+        private static readonly string EditorLocation = Paths.Get("HarmonyConfig", "CustomGenerator.editor.html");
 
         static ExtConfig() => LoadConfig();
 
@@ -63,6 +63,8 @@ namespace CustomGenerator
             [Loc("Override Map Sizes (9000 not be changed to 6000)", "Принудительный размер карты (карта 9000 не сменится на 6000)")]
             public bool OverrideSizes = true;
             [Loc("Override Map Folder (saves to <Server Root>/maps/)", "Перезаписать папку с картой (<папка сервера>/maps/)")]
+            [Desc("Save maps to maps/ next to the mod's files. With the launcher they always go to the launcher's maps/",
+                  "Сохранять карты в maps/ рядом с файлами мода. С лаунчером они всегда идут в maps/ папки лаунчера")]
             public bool OverrideFolder = true;
             [Loc("Override Map Name", "Перезаписать название карты")]
             public bool OverrideName = true;
@@ -343,8 +345,8 @@ namespace CustomGenerator
         private static void LoadConfig() {
             tempData = new TempData();
 
-            if (!Directory.Exists("HarmonyConfig")) {
-                Directory.CreateDirectory("HarmonyConfig");
+            if (!Directory.Exists(Paths.Get("HarmonyConfig"))) {
+                Directory.CreateDirectory(Paths.Get("HarmonyConfig"));
                 Logging.Info("Created HarmonyConfig directory");
             }
 
@@ -547,8 +549,8 @@ namespace CustomGenerator
                 if (string.IsNullOrWhiteSpace(monument.File)) {
                     Logging.Warning($"Custom monument '{name}': File is empty, disabled");
                     monument.Enabled = false;
-                } else if (custom.Enabled && monument.Enabled && !File.Exists(Path.Combine(custom.Folder, monument.File))) {
-                    Logging.Warning($"Custom monument '{name}': file {Path.Combine(custom.Folder, monument.File)} not found, disabled");
+                } else if (custom.Enabled && monument.Enabled && !File.Exists(Path.Combine(Paths.Resolve(custom.Folder), monument.File))) {
+                    Logging.Warning($"Custom monument '{name}': file {Path.Combine(Paths.Resolve(custom.Folder), monument.File)} not found, disabled");
                     monument.Enabled = false;
                 }
 

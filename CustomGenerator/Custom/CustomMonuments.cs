@@ -482,7 +482,7 @@ namespace CustomGenerator.Custom
                 string name = string.IsNullOrEmpty(cfg.Name) ? Path.GetFileNameWithoutExtension(cfg.File) : cfg.Name;
                 CustomMonumentData data;
                 try {
-                    data = CustomMonumentData.Load(Path.Combine(settings.Folder, cfg.File));
+                    data = CustomMonumentData.Load(Path.Combine(Paths.Resolve(settings.Folder), cfg.File));
                 } catch (Exception ex) {
                     Logging.Error($"Custom monument '{name}': failed to load {cfg.File}", ex);
                     GenerationReport.CustomMonument(name, 0, cfg.Count, "failed to load the file");

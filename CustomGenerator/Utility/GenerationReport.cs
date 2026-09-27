@@ -14,8 +14,8 @@ namespace CustomGenerator.Utility
     // HarmonyConfig/CustomGenerator.lastrun.json for the config editor's "Last run" tab.
     internal static class GenerationReport
     {
-        public static readonly string LastRunLocation = Path.Combine("HarmonyConfig", "CustomGenerator.lastrun.json");
-        public static readonly string PrefabsLocation = Path.Combine("HarmonyConfig", "CustomGenerator.prefabs.json");
+        public static readonly string LastRunLocation = Paths.Get("HarmonyConfig", "CustomGenerator.lastrun.json");
+        public static readonly string PrefabsLocation = Paths.Get("HarmonyConfig", "CustomGenerator.prefabs.json");
 
         private sealed class Group { public string Name, Folder; public int Target; public List<string> Prefabs; }
         private sealed class Custom { public string Name; public int Placed, Count; public string Note; }
@@ -139,9 +139,10 @@ namespace CustomGenerator.Utility
         // Swap files and whether a prefab with that name exists in this Rust version at all
         private static JArray SwapFiles() {
             var result = new JArray();
-            if (!Directory.Exists("maps/prefabs")) return result;
+            string folder = Paths.Get("maps", "prefabs");
+            if (!Directory.Exists(folder)) return result;
             var paths = PrefabPaths();
-            foreach (var file in Directory.GetFiles("maps/prefabs", "*.map")) {
+            foreach (var file in Directory.GetFiles(folder, "*.map")) {
                 string name = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
                 result.Add(new JObject { ["file"] = Path.GetFileName(file), ["known"] = paths.Count == 0 ? null : (JToken)paths.Any(x => x.Contains(name)) });
             }
@@ -166,11 +167,7 @@ namespace CustomGenerator.Utility
             File.WriteAllText(PrefabsLocation, all.ToString(Formatting.Indented));
         }
 
-        // Relative to the server folder with forward slashes, so the editor page can link it
-        private static string Relative(string path) {
-            string full = Path.GetFullPath(path), root = Path.GetFullPath(".").TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
-            return (full.StartsWith(root, StringComparison.OrdinalIgnoreCase) ? full.Substring(root.Length) : full).Replace('\\', '/');
-        }
+        private static string Relative(string path) => Paths.Relative(path);
 
         private static string Format(TimeSpan time) => time.TotalHours >= 1 ? $"{(int)time.TotalHours}h {time.Minutes}m {time.Seconds}s" : $"{time.Minutes}m {time.Seconds}s";
     }

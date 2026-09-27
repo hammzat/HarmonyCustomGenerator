@@ -74,7 +74,7 @@ For help, report issue and etc. join [our discord](https://discord.gg/xUdpkm8RUS
 - [x] Config validation with warnings in the log, automatic backup on update
 
 ### Configuration
-All features are configured in `HarmonyConfig/CustomGenerator.json` (created on the first run). The easiest way is `CustomGeneratorLauncher.exe` from the release: it opens the config editor in your browser and generates maps from there. Every option is described in [USAGE.md](USAGE.md), and monument swapping has its own section: [Monument swap](USAGE.md#monument-swap).
+All features are configured in `HarmonyConfig/CustomGenerator.json` (created on the first run). The easiest way: unpack the release into any folder and run `CustomGeneratorLauncher.exe`. It opens the config editor in your browser and generates maps with your Rust server, which gets the mod only for the time of a generation. Every option is described in [USAGE.md](USAGE.md), and monument swapping has its own section: [Monument swap](USAGE.md#monument-swap).
 
 ------
 ### Authors and Credits

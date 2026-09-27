@@ -11,7 +11,7 @@ using CustomGenerator.Utility;
 
 using static CustomGenerator.ExtConfig;
 public class SwapMonument {
-    private const string Folder = "maps/prefabs";
+    private static readonly string Folder = Paths.Get("maps", "prefabs");
 
     public static void Initiate(string path) {
         var mainMap = new WorldSerialization();
