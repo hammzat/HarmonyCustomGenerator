@@ -34,7 +34,7 @@ The mod hooks into the vanilla Rust map generator through Harmony and changes it
 You need a Rust dedicated server (Harmony 2.3 is included). A separate copy for generation is best, but any server works while it isn't running.
 
 **With the launcher (recommended)**
-1. Download `CustomGenerator-<version>.zip` from [Releases](https://github.com/publicrust/HarmonyCustomGenerator/releases) and unpack it into any folder, for example on the desktop. This is the **mod folder**: your config, monuments, maps and previews live here.
+1. Download `CustomGenerator-<version>.zip` from [Releases](https://github.com/hammzat/HarmonyCustomGenerator/releases) and unpack it into any folder, for example on the desktop. This is the **mod folder**: your config, monuments, maps and previews live here.
 2. Double-click `CustomGeneratorLauncher.exe`. The [config editor](#config-editor) opens in your browser.
 3. On the **Generate** tab set the folder of your Rust server (the one with `RustDedicated.exe`), pick a size and a seed and press **Save & generate**.
 

@@ -313,7 +313,7 @@ namespace CustomGenerator.Utility {
 
         private static void RenderGithub(string fontPath, ref Array2D<Color> output, int mapResolution, int imageResolution) {
             var color = System.Drawing.Color.WhiteSmoke;
-            var text = "github.com/publicrust/HarmonyCustomGenerator - DeepSea Update [by aristocratos]";
+            var text = "github.com/hammzat/HarmonyCustomGenerator - DeepSea Update [by aristocratos]";
 
             float scaleFactor = 0.04f;
             int fontSize = Mathf.Clamp((int)(imageResolution * scaleFactor), 10, 30);
