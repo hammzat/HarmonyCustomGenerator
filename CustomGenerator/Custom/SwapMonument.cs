@@ -64,9 +64,9 @@ public class SwapMonument {
             var anchor = swapMap.world.prefabs[0].position;
             foreach (var prefab in matches) {
                 mainMap.world.prefabs.Remove(prefab);
-                mainMap.world.prefabs.AddRange(MapHander.CreatePrefabFromMap(prefab.position, prefab.rotation, swapMap.world.prefabs));
+                mainMap.world.prefabs.AddRange(MapHandler.CreatePrefabFromMap(prefab.position, prefab.rotation, swapMap.world.prefabs));
                 foreach (var entity in fileIO)
-                    io.Add(MapExtrasWriter.Transform(entity, point => MapHander.TransformPoint(prefab.position, anchor, prefab.rotation, point)));
+                    io.Add(MapExtrasWriter.Transform(entity, point => MapHandler.TransformPoint(prefab.position, anchor, prefab.rotation, point)));
             }
             total += matches.Count;
             Logging.Info($"Swap: {file}: replaced {matches.Count} x '{monument.prefabShortname}' ({swapMap.world.prefabs.Count} prefabs each" + (fileIO.Count > 0 ? $", {fileIO.Count} IO entities" : "") + ")");
@@ -96,7 +96,7 @@ public class SwapMonument {
 }
 
 
-public class MapHander
+public class MapHandler
 {
     private static PrefabData CreatePrefab(uint PrefabID, VectorData position, VectorData rotation, VectorData scale, string category = "Monument")
     {

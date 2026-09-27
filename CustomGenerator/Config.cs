@@ -14,7 +14,7 @@ namespace CustomGenerator
     public class ExtConfig {
         public static ConfigData Config;
         public static TempData tempData;
-        private static readonly string CurrentVersion = "0.2.5";
+        private static readonly string CurrentVersion = "0.3.0";
 
         private static readonly string Location = Paths.Get("HarmonyConfig", "CustomGenerator.json");
         private static readonly string SchemaLocation = Paths.Get("HarmonyConfig", "CustomGenerator.schema.json");
@@ -345,18 +345,14 @@ namespace CustomGenerator
         private static void LoadConfig() {
             tempData = new TempData();
 
-            if (!Directory.Exists(Paths.Get("HarmonyConfig"))) {
-                Directory.CreateDirectory(Paths.Get("HarmonyConfig"));
-                Logging.Info("Created HarmonyConfig directory");
-            }
+            // The folders people put their files into, so they're easy to find
+            foreach (var folder in new[] { Paths.Get("HarmonyConfig"), Paths.Get("maps", "custom"), Paths.Get("maps", "prefabs") })
+                Directory.CreateDirectory(folder);
 
-            if (!File.Exists(Location))  {
-                Logging.Info("Config file not found, creating default configuration");
+            if (!File.Exists(Location)) {
+                Logging.Info("Config file not found, creating the default one");
                 LoadDefaultConfig();
-                return;
-            }
-
-            try {
+            } else try {
                 string raw = File.ReadAllText(Location);
                 Config = Deserialize(raw);
 

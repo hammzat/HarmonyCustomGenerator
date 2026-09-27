@@ -34,12 +34,12 @@ namespace CustomGenerator.Utility {
                 if (File.Exists(Path.Combine(path, resource.Key))) continue;
 
                 using (var client = new WebClient()) {
-                    Logging.Info($"DEPS - Downloading `{resource.Key}`...");
+                    Logging.Info($"Map image: downloading font {resource.Key}...");
                     try {
                         client.DownloadFile(resource.Value, Path.Combine(path, resource.Key));
                     }
                     catch (Exception ex) {
-                        Logging.Error($"DEPS - Error whilst downloading: {ex.Message} \nTry moving file from the `Resources` repository folder to the `mapimages/resources/`");
+                        Logging.Error($"Map image: can't download {resource.Key}: {ex.Message}. Copy the fonts from the release archive (mapimages/resources/) to {path}");
                     }
                 }
             }
@@ -51,14 +51,14 @@ namespace CustomGenerator.Utility {
 
             byte[] array = MapImageRender.Render(out int num, out int num2, out Color color, settings.Scale, false, false, settings.OceanMargin);
             if (array == null) {
-                Logging.Error("MapImageGenerator returned null!"); return;
+                Logging.Error("Map image: the terrain isn't ready, image skipped"); return;
             }
 
             // Named after the saved map, whatever Override Name/Folder are
             string mapName = Path.GetFileNameWithoutExtension(World.MapFileName);
             string fullPath = Paths.Get("mapimages", mapName + ".png");
             File.WriteAllBytes(fullPath, array);
-            Logging.Info($"Generated Map image: {fullPath}");
+            Logging.Info($"Map image saved to {fullPath}");
             GenerationReport.Image(fullPath);
         }
     }
@@ -131,7 +131,7 @@ namespace CustomGenerator.Utility {
         private static FieldInfo _monuments = AccessTools.TypeByName("TerrainPath").GetField("Monuments", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
         public static byte[] Render(out int imageWidth, out int imageHeight, out Color background, float scale = 0.5f, bool lossy = true, bool transparent = false, int oceanMargin = 500) {
-            Logging.Info("-/6 | Starting rendering map...");
+            Logging.Info("Map image: rendering...");
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             if (lossy && transparent)
@@ -168,7 +168,6 @@ namespace CustomGenerator.Utility {
             Vector4 offShoreColor = (transparent ? Vector4.zero : OffShoreColor);
             Vector4 waterColor = (transparent ? new Vector4(WaterColor.x, WaterColor.y, WaterColor.z, 0.5f) : WaterColor);
 
-            Logging.Info("1/6 | Render begin...");
 
             Parallel.For(0, imageHeight, delegate (int y) {
                 y -= oceanMargin;
@@ -228,8 +227,7 @@ namespace CustomGenerator.Utility {
             LoadIcons(ref output, imageWidth, imageHeight, mapRes, oceanMargin);
             if (Config.MapImage.Grid) RenderGrid(ref output, mapRes, imageWidth, oceanMargin);
 
-            Logging.Info($"  - Render took {stopwatch.Elapsed.Seconds}s.");
-            Logging.Info("6/6 | Done! Encoding...");
+            Logging.Info($"Map image: rendered in {stopwatch.Elapsed.TotalSeconds:0.0}s, encoding...");
             stopwatch.Stop();
 
             return EncodeToFile(imageWidth, imageHeight, array, lossy);
@@ -244,7 +242,6 @@ namespace CustomGenerator.Utility {
 
         private static void LoadIcons(ref Array2D<Color> output, int imageWidth, int imageHeight, int mapResolution, int oceanMargin) {
             List<MonumentInfo> monuments = (List<MonumentInfo>)_monuments.GetValue(tempData.terrainPath);
-            Logging.Info("3/4 | Proceeding map data...");
 
             var originalMap = mapResolution + oceanMargin;
             var originalMapOffset = imageWidth - originalMap;
@@ -336,7 +333,7 @@ namespace CustomGenerator.Utility {
         }
 
         private static void RenderMonument(List<MapMonument> monuments, string fontPath, ref Array2D<Color> output) {
-            Logging.Info("3/4 | Rendering monuments...");
+            Logging.Info("Map image: monument names");
             var color = System.Drawing.Color.Black;
 
             foreach (MapMonument monument in monuments) {
@@ -353,7 +350,7 @@ namespace CustomGenerator.Utility {
         }
 
         private static void RenderGrid(ref Array2D<Color> output, int mapResolution, int imageWidth, int oceanMargin) {
-            Logging.Info("4/6 | Rendering grid...");
+            Logging.Info("Map image: grid");
             var gridColor = System.Drawing.Color.FromArgb(120, 0, 0, 0);
             var bitmap = output.ToBitmap();
 
@@ -439,7 +436,7 @@ namespace CustomGenerator.Utility {
                 if (texture2D != null) 
                     UnityEngine.Object.Destroy(texture2D);
                 stopwatch.Stop();
-                Logging.Info($"  - Encoding took {stopwatch.Elapsed.Seconds}s.");
+                Logging.Info($"Map image: encoded in {stopwatch.Elapsed.TotalSeconds:0.0}s");
             }
         }
 

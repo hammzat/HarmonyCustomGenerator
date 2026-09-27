@@ -19,13 +19,13 @@ namespace CustomGenerator.Generators {
             if (!Config.Generator.Road.ShouldChange) return;
             if (!Config.Generator.Road.Enabled) {
                 MinSize(__instance) = int.MaxValue;
-                Logging.Generation($"Road MinWorldSize changed to max! Dont generate!");
+                Logging.Generation("Ring road disabled");
                 return;
             }
             if (!Config.Generator.Road.GenerateRing) return;
 
             MinSize(__instance) = 0;
-            Logging.Generation($"Road MinWorldSize changed to 0!");
+            Logging.Generation("Ring road on any map size");
         }
 
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
@@ -59,7 +59,7 @@ namespace CustomGenerator.Generators {
             if (Config.Generator.Road.GenerateSideMonuments) return;
 
             MinSize(__instance) = 99999;
-            Logging.Generation($"RoadMonuments MinWorldSize changed to 99999!");
+            Logging.Generation("Roadside monuments disabled");
         }
     }
 

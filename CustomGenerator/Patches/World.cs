@@ -12,11 +12,12 @@ namespace CustomGenerator.Generators
     internal static class World_InitSize {
         private static uint _size = 0;
         private static void Prefix(ref uint size) {
-            if (!Config.mapSettings.OverrideSizes) return;
+            // Remembered even without the override: the map image and the report use it
             tempData.mapsize = size;
             _size = size;
+            if (!Config.mapSettings.OverrideSizes) return;
 
-            Logging.Generation("Writed size to convars...");
+            Logging.Generation($"Map size {size}");
             if (size > 6000U || size < 1000U) {
                 Logging.Generation($"World ({_size}) - Using size bigger or smaller than default, rewriting limits...");
             }
@@ -27,7 +28,7 @@ namespace CustomGenerator.Generators
     internal static class World_InitSeed {
         private static void Prefix(ref uint seed) {
             tempData.mapseed = seed;
-            Logging.Generation("Writed seed to convars...");
+            Logging.Generation($"Seed {seed}");
         }
     }
 
@@ -35,7 +36,7 @@ namespace CustomGenerator.Generators
     public static class World_getSize {
         public static void Postfix(ref uint __result) {
             if (!Config.mapSettings.OverrideSizes) return;
-            if (tempData.mapsize == 0) { Logging.Info("map size == 0!"); return; }
+            if (tempData.mapsize == 0) return;
             __result = tempData.mapsize;
         }
     }

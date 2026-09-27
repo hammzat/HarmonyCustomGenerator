@@ -296,6 +296,7 @@ const UI = {
     serverTitle: "Rust server", serverPlaceholder: "Folder with RustDedicated.exe", serverSave: "Save", serverFound: "RustDedicated.exe found", serverMissing: "RustDedicated.exe not found",
     serverHint: "Any Rust dedicated server folder, better a separate copy for generation. The launcher puts CustomGenerator.dll into its HarmonyMods only while a map is generating and removes it afterwards; config, maps, previews and logs stay in {0}.",
     serverSaved: "Server folder saved", noServer: "Set the Rust server folder above to generate maps.",
+    log: "Log", unknownValue: "Unknown value, the mod ignores it", close: "Close", noPermission: "No permission to write the file",
     saveBlocked: "Can't save while a map is generating: the mod rewrites the config when it starts.",
   },
   ru: {
@@ -339,6 +340,7 @@ const UI = {
     serverTitle: "Сервер Rust", serverPlaceholder: "Папка с RustDedicated.exe", serverSave: "Сохранить", serverFound: "RustDedicated.exe найден", serverMissing: "RustDedicated.exe не найден",
     serverHint: "Любая папка выделенного сервера Rust, лучше отдельная копия под генерацию. Лаунчер кладёт CustomGenerator.dll в её HarmonyMods только на время генерации и потом убирает; конфиг, карты, превью и логи остаются в {0}.",
     serverSaved: "Папка сервера сохранена", noServer: "Укажите выше папку сервера Rust, чтобы генерировать карты.",
+    log: "Лог", unknownValue: "Неизвестное значение, мод его игнорирует", close: "Закрыть", noPermission: "Нет разрешения на запись файла",
     saveBlocked: "Нельзя сохранять, пока генерируется карта: мод перезаписывает конфиг при запуске.",
   },
 };
@@ -553,7 +555,7 @@ function fieldRow(key, node, obj, onChange, ctx) {
         } }, v);
       chips.append(chip);
     }
-    for (const v of (get() || []).filter(v => !node.items.enum.includes(v))) chips.append(h("span", { class: "chip", title: "unknown value", style: "border-color: var(--bad); color: var(--bad)" }, v));
+    for (const v of (get() || []).filter(v => !node.items.enum.includes(v))) chips.append(h("span", { class: "chip", title: t("unknownValue"), style: "border-color: var(--bad); color: var(--bad)" }, v));
     control.append(chips);
   } else if (node.type === "array") {
     row.classList.add("wide");
@@ -1063,7 +1065,7 @@ function generateView() {
 
   const logBox = h("pre", { class: "log", id: "gen-log" });
   const onlyMod = h("input", { type: "checkbox", checked: gen.onlyMod, onchange: e => { gen.onlyMod = e.target.checked; saveGen(); updateGeneration(); } });
-  out.push(h("section", { class: "card" }, h("div", { class: "head" }, h("h3", {}, "Log"), h("span", { class: "spacer", style: "flex:1" }),
+  out.push(h("section", { class: "card" }, h("div", { class: "head" }, h("h3", {}, t("log")), h("span", { class: "spacer", style: "flex:1" }),
     h("label", { style: "display:flex; gap:8px; align-items:center; font-size:12.5px; color:var(--muted)" }, h("span", { class: "switch" }, onlyMod, h("span")), t("onlyMod"))), logBox));
   out.push(h("div", { id: "gen-done" }));
   setTimeout(updateGeneration);
@@ -1196,7 +1198,7 @@ function modal(title, content, buttons) {
   const overlay = h("div", { class: "overlay", onclick: e => { if (e.target === overlay) overlay.remove(); } });
   const close = () => overlay.remove();
   overlay.append(h("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-label": title },
-    h("div", { class: "head" }, h("h2", {}, title), h("span", { style: "flex:1" }), h("button", { type: "button", class: "btn ghost small", "aria-label": "Close", onclick: close }, "×")),
+    h("div", { class: "head" }, h("h2", {}, title), h("span", { style: "flex:1" }), h("button", { type: "button", class: "btn ghost small", "aria-label": t("close"), onclick: close }, "×")),
     h("div", { class: "content" }, content),
     buttons ? h("div", { class: "foot" }, buttons(close)) : null));
   overlay.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
@@ -1326,7 +1328,7 @@ async function save() {
     if (!S.handle && "showSaveFilePicker" in window)
       S.handle = await window.showSaveFilePicker({ suggestedName: "CustomGenerator.json", types: [{ description: "JSON", accept: { "application/json": [".json"] } }] });
     if (S.handle) {
-      if (S.handle.requestPermission && (await S.handle.requestPermission({ mode: "readwrite" })) !== "granted") throw new Error("Permission denied");
+      if (S.handle.requestPermission && (await S.handle.requestPermission({ mode: "readwrite" })) !== "granted") throw new Error(t("noPermission"));
       const writable = await S.handle.createWritable();
       await writable.write(text()); await writable.close();
       S.fileName = S.handle.name;
