@@ -109,6 +109,10 @@ namespace CustomGenerator
             public SimplePath Rail = new();
             [Desc("Oases, canyons and lakes on any map size", "Оазисы, каньоны и озёра на любом размере карты")]
             public UniqueEnviroment UniqueEnviroment = new();
+            [Loc("Land shape", "Форма суши")]
+            [Desc("Reshapes the base terrain before everything else is placed: more or less land, higher or flatter mountains, wide beaches",
+                  "Меняет исходный рельеф до того, как на него что-то ставится: больше или меньше суши, выше или ниже горы, широкие пляжи")]
+            public LandShapeSettings LandShape = new();
 
             [Loc("Remove Rivers", "Удалить реки")]
             public bool RemoveRivers = false;
@@ -367,6 +371,35 @@ namespace CustomGenerator
             public bool GenerateLakes = true;
         }
 
+        public sealed class LandShapeSettings {
+            [Loc("Land level (m)", "Уровень суши (м)")]
+            [Desc("Raises (+) or lowers (-) the whole terrain against the sea. +10 turns shallow water into land: bigger islands, fewer straits. -10 floods lowlands: smaller islands, more of them. The map edge stays ocean",
+                  "Поднимает (+) или опускает (-) весь рельеф относительно моря. +10 превращает мелководье в сушу: острова больше, проливов меньше. -10 топит низины: острова меньше и их больше. Край карты остаётся океаном")]
+            [Schema(Min = -60, Max = 60)]
+            public float LandLevel = 0f;
+            [Loc("Mountain height (1 = default)", "Высота гор (1 = по умолчанию)")]
+            [Desc("Multiplies the height of everything above sea level. 0.5 = low hills, 1.5 = tall mountains",
+                  "Умножает высоту всего, что выше уровня моря. 0.5 = низкие холмы, 1.5 = высокие горы")]
+            [Schema(Min = 0.2, Max = 3)]
+            public float MountainHeight = 1f;
+            [Loc("Flat beaches (m)", "Плоские пляжи (м)")]
+            [Desc("Land up to this height above the sea gets flatter, so coasts become wide beaches instead of slopes. 0 = off, 5-15 is a good range",
+                  "Суша до этой высоты над морем становится площе, и берега превращаются в широкие пляжи вместо склонов. 0 = выкл, хорошо 5-15")]
+            [Schema(Min = 0, Max = 40)]
+            public float BeachHeight = 0f;
+            [Loc("Shallow shelf (m)", "Мелководье (м)")]
+            [Desc("Water down to this depth gets shallower, so there's a wide strip of shallow water along the coasts. 0 = off",
+                  "Вода до этой глубины становится мельче, и вдоль берегов появляется широкая полоса мелководья. 0 = выкл")]
+            [Schema(Min = 0, Max = 40)]
+            public float ShelfDepth = 0f;
+            [Loc("Fill inland sea", "Засыпать внутренние моря")]
+            [Desc("Land below sea level that isn't connected to the ocean (salt water lakes inside islands) is raised just above the sea",
+                  "Суша ниже уровня моря, не связанная с океаном (солёные озёра внутри островов), поднимается чуть выше моря")]
+            public bool FillInlandSea = false;
+
+            public bool Changes => LandLevel != 0f || MountainHeight != 1f || BeachHeight > 0f || ShelfDepth > 0f || FillInlandSea;
+        }
+
         public sealed class TierSettings {
             [Schema(Min = 0)] public float Tier0 = 30f;
             [Schema(Min = 0)] public float Tier1 = 30f;
@@ -564,6 +597,12 @@ namespace CustomGenerator
                 gen.RiverSpacing = 50f;
             }
             gen.DecorDensity ??= new Dictionary<string, float>();
+            gen.LandShape ??= new LandShapeSettings();
+            var land = gen.LandShape;
+            land.LandLevel = Mathf.Clamp(land.LandLevel, -60f, 60f);
+            land.MountainHeight = Mathf.Clamp(land.MountainHeight, 0.2f, 3f);
+            land.BeachHeight = Mathf.Clamp(land.BeachHeight, 0f, 40f);
+            land.ShelfDepth = Mathf.Clamp(land.ShelfDepth, 0f, 40f);
             foreach (var key in gen.DecorDensity.Keys.Where(x => string.IsNullOrWhiteSpace(x) || gen.DecorDensity[x] < 0f).ToList()) {
                 Logging.Warning($"Decor density '{key}': {gen.DecorDensity[key]} skipped, needs a folder and a multiplier of 0 or more");
                 gen.DecorDensity.Remove(key);
