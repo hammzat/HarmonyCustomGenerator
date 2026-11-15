@@ -74,15 +74,7 @@ namespace CustomGenerator.Generators
             TargetCount(__instance) = monument.TargetCount;
             MinWorldSize(__instance) = monument.MinWorldSize;
 
-            if (monument.Filter.Enabled) {
-                __instance.Filter = new SpawnFilter {
-                    BiomeType =   monument.Filter.BiomeType.Count == 0 ? (TerrainBiome.Enum)(-1) :    (TerrainBiome.Enum)EnumParser.GetFilterEnum("BiomeType", monument.Filter.BiomeType),
-                    SplatType =   monument.Filter.SplatType.Count == 0 ? (TerrainSplat.Enum)(-1) :    (TerrainSplat.Enum)EnumParser.GetFilterEnum("SplatType", monument.Filter.SplatType),
-                    TopologyAll = monument.Filter.TopologyAll.Count == 0 ? (TerrainTopology.Enum)(0) :  (TerrainTopology.Enum)EnumParser.GetFilterEnum("TopologyAll", monument.Filter.TopologyAll),
-                    TopologyAny = monument.Filter.TopologyAny.Count == 0 ? (TerrainTopology.Enum)(-1) : (TerrainTopology.Enum)EnumParser.GetFilterEnum("TopologyAny", monument.Filter.TopologyAny),
-                    TopologyNot = monument.Filter.TopologyNot.Count == 0 ? (TerrainTopology.Enum)(0) :  (TerrainTopology.Enum)EnumParser.GetFilterEnum("TopologyNot", monument.Filter.TopologyNot),
-                };
-            }
+            if (monument.Filter.Enabled) __instance.Filter = BuildFilter(monument.Filter);
             if (!string.IsNullOrEmpty(monument.OverrideFolder)) {
                 Logging.Generation($"{monument.Description}: folder '{__instance.ResourceFolder}' -> '{monument.OverrideFolder}'");
                 __instance.ResourceFolder = monument.OverrideFolder;
@@ -98,6 +90,66 @@ namespace CustomGenerator.Generators
 
         private static void Finalizer() {
             Prefab_FindPrefabNames.Active = null;
+        }
+
+        internal static SpawnFilter BuildFilter(SpawnFilterCfg filter) => new SpawnFilter {
+            BiomeType =   filter.BiomeType.Count == 0 ? (TerrainBiome.Enum)(-1) :    (TerrainBiome.Enum)EnumParser.GetFilterEnum("BiomeType", filter.BiomeType),
+            SplatType =   filter.SplatType.Count == 0 ? (TerrainSplat.Enum)(-1) :    (TerrainSplat.Enum)EnumParser.GetFilterEnum("SplatType", filter.SplatType),
+            TopologyAll = filter.TopologyAll.Count == 0 ? (TerrainTopology.Enum)(0) :  (TerrainTopology.Enum)EnumParser.GetFilterEnum("TopologyAll", filter.TopologyAll),
+            TopologyAny = filter.TopologyAny.Count == 0 ? (TerrainTopology.Enum)(-1) : (TerrainTopology.Enum)EnumParser.GetFilterEnum("TopologyAny", filter.TopologyAny),
+            TopologyNot = filter.TopologyNot.Count == 0 ? (TerrainTopology.Enum)(0) :  (TerrainTopology.Enum)EnumParser.GetFilterEnum("TopologyNot", filter.TopologyNot),
+        };
+    }
+
+    // The other monument placers: along roads, along rails and offshore (oil rigs). Same group settings as PlaceMonuments,
+    // set by field name since each has its own fields: offshore has no filter and distance modes, its
+    // DistanceBetweenMonuments is MinDistanceSameType. Each offshore candidate gets one spot, so more rigs need PrefabCopies.
+    [HarmonyPatch]
+    class OtherMonumentPlacers_Process {
+        internal static readonly string[] Types = { "PlaceMonumentsRoadside", "PlaceMonumentsRailside", "PlaceMonumentsOffshore" };
+
+        private static IEnumerable<MethodBase> TargetMethods() {
+            foreach (var name in Types) {
+                var type = AccessTools.TypeByName(name);
+                var method = type == null ? null : AccessTools.Method(type, "Process");
+                if (method != null) yield return method;
+            }
+        }
+
+        private static bool Prefix(ProceduralComponent __instance) {
+            if (!Config.Monuments.Enabled) return true;
+            var t = Traverse.Create(__instance);
+            string folder = t.Field("ResourceFolder").GetValue<string>();
+            var monument = Config.Monuments.monuments.FirstOrDefault(x => x.Folder == folder);
+            if (monument == null || !monument.ShouldChange) return true;
+            if (!monument.Generate) return false;
+
+            Set(t, "TargetCount", monument.TargetCount);
+            Set(t, "MinWorldSize", monument.MinWorldSize);
+            Set(t, "MinDistanceSameType", monument.MinDistanceSameType);
+            Set(t, "MinDistanceDifferentType", monument.MinDistanceDifferentType);
+            Set(t, "DistanceBetweenMonuments", monument.MinDistanceSameType);
+            SetEnum(t, "DistanceSameType", (int)monument.distanceSame);
+            SetEnum(t, "DistanceDifferentType", (int)monument.distanceDifferent);
+            if (monument.Filter.Enabled && t.Field("Filter").FieldExists()) t.Field("Filter").SetValue(PlaceMonuments_Process.BuildFilter(monument.Filter));
+            if (!string.IsNullOrEmpty(monument.OverrideFolder)) {
+                Logging.Generation($"{monument.Description}: folder '{folder}' -> '{monument.OverrideFolder}'");
+                t.Field("ResourceFolder").SetValue(monument.OverrideFolder);
+            }
+            if (monument.HasPrefabRules) Prefab_FindPrefabNames.Active = monument;
+
+            Logging.Generation($"{monument.Description}: group settings applied");
+            return true;
+        }
+
+        private static void Finalizer() => Prefab_FindPrefabNames.Active = null;
+
+        private static void Set(Traverse t, string field, int value) { if (t.Field(field).FieldExists()) t.Field(field).SetValue(value); }
+
+        // Each placer has its own DistanceMode enum (Any, Min, Max)
+        private static void SetEnum(Traverse t, string field, int value) {
+            var f = t.Field(field);
+            if (f.FieldExists()) f.SetValue(Enum.ToObject(f.GetValueType(), value));
         }
     }
 
@@ -138,7 +190,7 @@ namespace CustomGenerator.Generators
     [HarmonyPatch]
     class PlaceMonuments_Report {
         private static IEnumerable<MethodBase> TargetMethods() {
-            foreach (var name in new[] { "PlaceMonuments", "PlaceMonumentsRoadside", "PlaceMonumentsRailside" }) {
+            foreach (var name in new[] { "PlaceMonuments" }.Concat(OtherMonumentPlacers_Process.Types)) {
                 var type = AccessTools.TypeByName(name);
                 var method = type == null ? null : AccessTools.Method(type, "Process");
                 if (method != null) yield return method;
@@ -149,7 +201,7 @@ namespace CustomGenerator.Generators
         [HarmonyPriority(Priority.First)]
         private static void Prefix(ProceduralComponent __instance, out int __state) {
             __state = World.Serialization?.world?.prefabs?.Count ?? 0;
-            GenerationReport.CurrentFolder = (__instance as PlaceMonuments)?.ResourceFolder;
+            GenerationReport.CurrentFolder = Traverse.Create(__instance).Field("ResourceFolder").GetValue<string>();
         }
 
         [HarmonyPriority(Priority.First)]
@@ -162,7 +214,9 @@ namespace CustomGenerator.Generators
 
             // Show the target only when it's exact: set in the config and not scaled by map size
             var cfg = Config.Monuments.Enabled && folder != null ? Config.Monuments.monuments.FirstOrDefault(x => x.ShouldChange && x.Folder == folder) : null;
-            int target = cfg != null && cfg.TargetCount > 0 && cfg.IgnoreWorldSizeMultiplier ? (cfg.Generate ? cfg.TargetCount : 0) : -1;
+            // Only PlaceMonuments scales the count by map size
+            bool scaled = __instance is PlaceMonuments && cfg != null && !cfg.IgnoreWorldSizeMultiplier;
+            int target = cfg != null && cfg.TargetCount > 0 && !scaled ? (cfg.Generate ? cfg.TargetCount : 0) : -1;
             GenerationReport.MonumentGroup(__instance.Description, folder, target, added);
         }
     }
@@ -211,6 +265,35 @@ namespace CustomGenerator.Generators
                     Generate = true, ShouldChange = false,
                 });
             }
+            foreach (var comp in SingletonComponent<WorldSetup>.Instance.GetComponentsInChildren<ProceduralComponent>(true)
+                         .Where(x => OtherMonumentPlacers_Process.Types.Contains(x.GetType().Name))) {
+                var t = Traverse.Create(comp);
+                int Int(string field) => t.Field(field).FieldExists() ? t.Field(field).GetValue<int>() : 0;
+                PlaceMonuments.DistanceMode Mode(string field) =>
+                    t.Field(field).FieldExists() ? (PlaceMonuments.DistanceMode)Convert.ToInt32(t.Field(field).GetValue()) : PlaceMonuments.DistanceMode.Any;
+                var filter = t.Field("Filter").FieldExists() ? t.Field("Filter").GetValue<SpawnFilter>() : null;
+                bool offshore = comp.GetType().Name == "PlaceMonumentsOffshore";
+                found.Add(new ExtConfig.Monument {
+                    Description = comp.Description,
+                    Folder = t.Field("ResourceFolder").GetValue<string>(),
+                    distanceDifferent = Mode("DistanceDifferentType"),
+                    distanceSame = Mode("DistanceSameType"),
+                    MinDistanceDifferentType = Int("MinDistanceDifferentType"),
+                    MinDistanceSameType = offshore ? Int("DistanceBetweenMonuments") : Int("MinDistanceSameType"),
+                    TargetCount = Int("TargetCount"),
+                    MinWorldSize = Int("MinWorldSize"),
+                    Filter = filter == null ? new SpawnFilterCfg() : new SpawnFilterCfg {
+                        Enabled = true,
+                        TopologyAll = GetFilterValue(filter.TopologyAll),
+                        TopologyAny = GetFilterValue(filter.TopologyAny),
+                        TopologyNot = GetFilterValue(filter.TopologyNot),
+                        BiomeType   = GetFilterValue(filter.BiomeType),
+                        SplatType   = GetFilterValue(filter.SplatType),
+                    },
+                    Generate = true, ShouldChange = false,
+                });
+            }
+            Logging.Info($"Found {found.Count - placeMonuments.Length} roadside, railside and offshore monument groups");
             MergeMonumentGroups(found);
 
             return true;
