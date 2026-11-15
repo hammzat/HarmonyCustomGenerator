@@ -235,6 +235,41 @@ pre.log .err { color: #ff8a80; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 30; }
 .toast.show { opacity: 1; }
 
+/* Readable names: the label, then the config key in mono */
+.label .key { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 8px; font-weight: 400; }
+.card > .head h3 .key { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 8px; font-weight: 400; }
+
+/* Search */
+.search { position: relative; margin: 0 2px 12px; }
+.search input { width: 100%; padding: 7px 10px 7px 30px; background: var(--panel); }
+.search::before { content: "⌕"; position: absolute; left: 10px; top: 50%; transform: translateY(-52%); color: var(--muted); font-size: 15px; pointer-events: none; }
+.search kbd { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font: 10.5px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; background: var(--panel-2); pointer-events: none; }
+.search input:focus + kbd, .search input:not(:placeholder-shown) + kbd { display: none; }
+.results { position: absolute; left: 0; right: 0; top: calc(100% + 4px); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 30px #0003; z-index: 10; max-height: 60vh; overflow: auto; padding: 4px; }
+.results button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 7px; cursor: pointer; color: var(--text); }
+.results button:hover, .results button.sel { background: var(--accent-soft); }
+.results small { display: block; color: var(--muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.results .none { padding: 10px; color: var(--muted); font-size: 13px; }
+.flash { animation: flash 1.6s ease-out; }
+@keyframes flash { 0%, 30% { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); } 100% { background: transparent; box-shadow: inset 3px 0 0 transparent; } }
+
+/* Contents of the page, on wide screens */
+.page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+.toc { display: none; }
+@media (min-width: 1380px) {
+  main { max-width: 1240px; }
+  .page.with-toc { grid-template-columns: minmax(0, 1fr) 200px; }
+  .with-toc .toc { display: block; position: sticky; top: 79px; align-self: start; font-size: 12.5px; border-left: 1px solid var(--line); padding-left: 14px; }
+  .toc b { display: block; color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .toc a { display: block; color: var(--muted); text-decoration: none; padding: 4px 0; line-height: 1.3; }
+  .toc a:hover, .toc a.on { color: var(--accent); }
+}
+main h1 { letter-spacing: -.01em; }
+.card, .row { scroll-margin-top: 72px; }
+.card { transition: box-shadow .15s; }
+.card > .head { background: linear-gradient(var(--panel-2), var(--panel)); border-radius: var(--radius) var(--radius) 0 0; }
+.logo { background: linear-gradient(135deg, var(--accent), #8f3a2a); }
+
 @media (max-width: 760px) {
   .layout { grid-template-columns: 1fr; }
   nav { position: static; height: auto; display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 8px; }
@@ -307,6 +342,7 @@ const UI = {
     start: "Save & generate", startNoSave: "Generate", stop: "Stop", running: "Generating {0} / {1}", elapsed: "{0}", queued: n => `${n} more in queue`,
     step: "Step: {0}", idle: "Not running", doneRuns: "Finished runs", exitCode: "exit code {0}", stopped: "stopped", ok: "done",
     attempt: "attempt {0}", rerolled: "requirements not met, another seed",
+    searchSettings: "Search settings", searchNone: "Nothing found", onThisPage: "On this page",
     mapsTab: "Maps", mapsTitle: "Generated maps", mapsLead: "Every map in maps/ with what's on it. Filter by size and the monuments it must have.",
     mapsNoApi: "The map list needs the launcher: open the editor through CustomGeneratorLauncher.exe.", mapsEmpty: "No maps match.",
     allSizes: "All sizes", sizeSmall: "Small (up to 2500)", sizeMedium: "Medium (3000-4000)", sizeLarge: "Large (4500+)",
@@ -364,6 +400,7 @@ const UI = {
     start: "Сохранить и сгенерировать", startNoSave: "Сгенерировать", stop: "Остановить", running: "Генерируется {0} / {1}", elapsed: "{0}", queued: n => `В очереди ещё: ${n}`,
     step: "Шаг: {0}", idle: "Не запущено", doneRuns: "Завершённые запуски", exitCode: "код выхода {0}", stopped: "остановлено", ok: "готово",
     attempt: "попытка {0}", rerolled: "требования не выполнены, другой сид",
+    searchSettings: "Поиск настроек", searchNone: "Ничего не найдено", onThisPage: "На странице",
     mapsTab: "Карты", mapsTitle: "Сгенерированные карты", mapsLead: "Все карты из maps/ и что на них есть. Фильтр по размеру и монументам, которые должны быть.",
     mapsNoApi: "Списку карт нужен лаунчер: откройте редактор через CustomGeneratorLauncher.exe.", mapsEmpty: "Подходящих карт нет.",
     allSizes: "Все размеры", sizeSmall: "Маленькие (до 2500)", sizeMedium: "Средние (3000-4000)", sizeLarge: "Большие (4500+)",
@@ -591,7 +628,7 @@ function fieldRow(key, node, obj, onChange, ctx) {
   const row = h("div", { class: "row", "data-key": key });
   const err = h("p", { class: "err" });
   const label = h("div", { class: "label" },
-    h("span", { class: "name" }, key), h("span", { class: "changed-dot", title: hasDefault ? t("defaultIs", JSON.stringify(node.default)) : null }),
+    h("span", { class: "name" }, ...nameParts(key, node)), h("span", { class: "changed-dot", title: hasDefault ? t("defaultIs", JSON.stringify(node.default)) : null }),
     node.description ? h("p", { class: "desc" }, node.description) : null, err);
   const control = h("div", { class: "control" });
   row.append(label, control);
@@ -724,6 +761,45 @@ function dictInput(initial, valueNode, onChange, known) {
   return wrap;
 }
 
+/* ---------- readable names ---------- */
+// Fields named in code (no localized key) get a readable label; the key stays visible in mono, as the wiki and the JSON use it
+const LABELS = {
+  ShouldChange: ["Change this (master switch)", "Менять (главный переключатель)"],
+  Enabled: ["Enabled", "Включено"], Generate: ["Generate", "Генерировать"],
+  Road: ["Roads", "Дороги"], Rail: ["Rails", "Железная дорога"], UniqueEnviroment: ["Unique environment", "Уникальное окружение"],
+  GenerateRing: ["Ring on any map size", "Кольцо на любом размере карты"], GenerateSideMonuments: ["Monuments along it", "Монументы вдоль"],
+  GenerateSideObjects: ["Roadside objects", "Придорожные объекты"],
+  GenerateOasis: ["Oases", "Оазисы"], GenerateCanyons: ["Canyons", "Каньоны"], GenerateLakes: ["Lakes", "Озёра"],
+  Description: ["Step name", "Название шага"], Folder: ["Folder", "Папка"], OverrideFolder: ["Another folder", "Другая папка"],
+  MinWorldSize: ["Min map size", "Мин. размер карты"], TargetCount: ["How many", "Сколько"],
+  IgnoreWorldSizeMultiplier: ["Exact count (ignore map size)", "Точное число (без учёта размера карты)"],
+  MinDistanceSameType: ["Min distance to the same kind (m)", "Мин. расстояние до таких же (м)"],
+  MinDistanceDifferentType: ["Min distance to other kinds (m)", "Мин. расстояние до других (м)"],
+  distanceSame: ["Placement near the same kind", "Размещение рядом с такими же"], distanceDifferent: ["Placement near other kinds", "Размещение рядом с другими"],
+  IncludePrefabs: ["Only these prefabs", "Только эти префабы"], ExcludePrefabs: ["Never these prefabs", "Без этих префабов"],
+  PrefabCopies: ["Copies per prefab", "Копий на префаб"], Filter: ["Where it can stand", "Где может стоять"],
+  SplatType: ["Ground textures", "Текстуры земли"], BiomeType: ["Biomes", "Биомы"],
+  TopologyAll: ["Topology: all of", "Топология: все из"], TopologyAny: ["Topology: any of", "Топология: любая из"], TopologyNot: ["Topology: none of", "Топология: ни одной из"],
+  Name: ["Name", "Название"], File: ["File", "Файл"], Count: ["How many", "Сколько"], Radius: ["Pad radius (m)", "Радиус площадки (м)"],
+  Blend: ["Blend ring (m)", "Переходное кольцо (м)"], HeightMode: ["Terrain", "Рельеф"],
+  MinHeight: ["Min height (m)", "Мин. высота (м)"], MaxHeight: ["Max height (m)", "Макс. высота (м)"],
+  MaxHeightDifference: ["Max height difference (m)", "Макс. перепад высот (м)"], MinDistanceToMonuments: ["Min distance to monuments (m)", "Мин. расстояние до монументов (м)"],
+  RandomRotation: ["Random rotation", "Случайный поворот"], CopySplat: ["Copy ground textures", "Копировать текстуры земли"],
+  CopyTopology: ["Copy topology", "Копировать топологию"], CopyAlpha: ["Copy terrain holes", "Копировать дыры в рельефе"],
+  MapMarker: ["Name on the in-game map", "Подпись на карте в игре"], Monuments: ["Monuments", "Монументы"],
+  OnMissing: ["When something is missing", "Если чего-то нет"], MaxAttempts: ["Attempts", "Попыток"],
+  Arid: ["Arid", "Пустыня"], Temperate: ["Temperate", "Умеренный"], Tundra: ["Tundra", "Тундра"], Arctic: ["Arctic", "Арктика"], Jungle: ["Jungle", "Джунгли"],
+};
+function labelOf(key, node) {
+  const l = node && node["x-name"] === key ? LABELS[key] : null;
+  return l ? l[S.lang === "ru" ? 1 : 0] : key;
+}
+// The readable name and, when it differs, the key it has in the JSON
+function nameParts(key, node) {
+  const label = labelOf(key, node);
+  return label === key ? [key] : [label, h("span", { class: "key" }, key)];
+}
+
 /* ---------- groups and lists ---------- */
 // rowsCard: plain rows go into their own card, groups and lists follow as separate cards (section level)
 function renderFields(node, obj, onAnyChange, rowsCard, ctx) {
@@ -758,7 +834,7 @@ function renderFields(node, obj, onAnyChange, rowsCard, ctx) {
 }
 
 function groupCard(title, node, obj, onAnyChange, ctx) {
-  const head = h("div", { class: "head" }, h("div", {}, h("h3", {}, title), node.description ? h("p", {}, node.description) : null));
+  const head = h("div", { class: "head" }, h("div", {}, h("h3", {}, ...nameParts(title, node)), node.description ? h("p", {}, node.description) : null));
   let sum, bar;
   if (node["x-sum"]) {
     sum = h("span", { class: "sum" });
@@ -774,7 +850,7 @@ function groupCard(title, node, obj, onAnyChange, ctx) {
     sum.textContent = ok ? t("sum", total) : t("sumBad", total, spec.target);
     sum.classList.toggle("off", !ok);
   };
-  const card = h("section", { class: "card" }, head);
+  const card = h("section", { class: "card", "data-key": title }, head);
   if (node["x-sum"]) { bar = percentBar(node, obj, fields); card.append(bar.el); }
   card.append(fields);
   updateSum();
@@ -838,7 +914,7 @@ function percentBar(node, obj, fields) {
 function listCard(title, node, list, onAnyChange) {
   const items = h("div", { class: "items", "data-empty": t("empty") });
   const count = h("span", { class: "badge" });
-  const card = h("section", { class: "card list" }, h("div", { class: "head" }, h("div", {}, h("h3", {}, title), node.description ? h("p", {}, node.description) : null), count));
+  const card = h("section", { class: "card list", "data-key": title }, h("div", { class: "head" }, h("div", {}, h("h3", {}, ...nameParts(title, node)), node.description ? h("p", {}, node.description) : null), count));
   const addable = !!node["x-addable"];
   let filter = "";
 
@@ -988,9 +1064,10 @@ function render() {
 function drawNav() {
   const nav = document.getElementById("nav");
   const tab = (key, label, state) => h("button", { type: "button", class: key === S.section ? "active" : "", "data-key": key,
-    onclick: () => { S.section = key; drawNav(); drawSection(); window.scrollTo(0, 0); } }, h("span", {}, label), state);
+    onclick: () => go(key) }, h("span", {}, label), state);
   const genState = generating() ? h("span", { class: "state busy" }, "●") : null;
   fill(nav,
+    S.config ? searchBox() : null,
     tab(TAB_GENERATE, "▶ " + t("generate"), genState),
     tab(TAB_LAST, t("lastRun"), S.extra.lastRun ? h("span", { class: "state" }, S.extra.lastRun.size) : null),
     tab(TAB_MAPS, t("mapsTab"), null),
@@ -1002,6 +1079,78 @@ function drawNav() {
     }),
     h("div", { class: "foot" }, S.config?.Version ? t("version", S.config.Version) : ""));
 }
+// Switch section; the hash keeps it, so back/forward and reload work
+function go(key, focusPath) {
+  if (S.section !== key) {
+    S.section = key;
+    const hash = "#" + encodeURIComponent(key);
+    if (location.hash !== hash) history.pushState(null, "", hash);
+    drawNav(); drawSection();
+  }
+  if (focusPath) reveal(focusPath); else window.scrollTo(0, 0);
+}
+window.addEventListener("popstate", () => {
+  const key = decodeURIComponent(location.hash.slice(1));
+  if (key && key !== S.section && S.schema && (S.schema.properties[key] || [TAB_GENERATE, TAB_LAST, TAB_MAPS].includes(key))) { S.section = key; drawNav(); drawSection(); }
+});
+
+// Every field of the config, for the search: section, path of keys, readable name, description
+function searchIndex() {
+  const out = [];
+  const walk = (section, node, path, trail) => {
+    for (const [key, child] of Object.entries(node.properties || {})) {
+      if (key.startsWith("$") || child.readOnly) continue;
+      const label = labelOf(key, child), p = [...path, key], tr = [...trail, label];
+      out.push({ section, path: p, label, key, trail: tr, desc: child.description || "", text: (label + " " + key + " " + (child.description || "")).toLowerCase() });
+      if (isGroup(child)) walk(section, child, p, tr);
+    }
+  };
+  for (const [key, node] of sections()) walk(key, node, [], [key]);
+  return out;
+}
+
+function searchBox() {
+  let index = null, sel = 0, items = [];
+  const results = h("div", { class: "results", hidden: true });
+  const input = h("input", { type: "search", placeholder: t("searchSettings"), "aria-label": t("searchSettings"), spellcheck: false, id: "search" });
+  const pick = item => { input.value = ""; results.hidden = true; input.blur(); go(item.section, item.path); };
+  const draw = () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q) { results.hidden = true; return; }
+    index ??= searchIndex();
+    const words = q.split(/\s+/);
+    items = index.filter(x => words.every(w => x.text.includes(w)))
+      .sort((a, b) => (b.label.toLowerCase().includes(q) - a.label.toLowerCase().includes(q)) || a.path.length - b.path.length).slice(0, 12);
+    sel = Math.min(sel, Math.max(0, items.length - 1));
+    fill(results, ...(items.length ? items.map((x, i) => h("button", { type: "button", class: i === sel ? "sel" : "", onmousedown: e => { e.preventDefault(); pick(x); } },
+      x.label, h("small", {}, x.trail.slice(0, -1).join(" › ") + (x.desc ? " · " + x.desc : "")))) : [h("div", { class: "none" }, t("searchNone"))]));
+    results.hidden = false;
+  };
+  input.addEventListener("input", () => { sel = 0; draw(); });
+  input.addEventListener("focus", draw);
+  input.addEventListener("blur", () => setTimeout(() => results.hidden = true, 100));
+  input.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); sel = (sel + (e.key === "ArrowDown" ? 1 : -1) + items.length) % Math.max(1, items.length); draw(); }
+    else if (e.key === "Enter" && items[sel]) pick(items[sel]);
+    else if (e.key === "Escape") { input.value = ""; draw(); input.blur(); }
+  });
+  return h("div", { class: "search" }, input, h("kbd", {}, "Ctrl K"), results);
+}
+
+// Scroll to a field by its key path and make it blink
+function reveal(path) {
+  let scope = document.getElementById("main"), el = null;
+  for (const [i, key] of path.entries()) {
+    const sel = i === path.length - 1 ? `[data-key="${CSS.escape(key)}"]` : `section[data-key="${CSS.escape(key)}"]`;
+    el = scope.querySelector(sel);
+    if (!el) break;
+    scope = el;
+  }
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+
 function updateNav() {
   for (const button of document.querySelectorAll("nav button")) {
     const key = button.dataset.key, node = S.schema?.properties[key], state = button.querySelector(".state");
@@ -1028,7 +1177,27 @@ function drawSection() {
     if (list) content.push(customFilesCard(S.config[key], list));
   }
   if (node["x-name"] === "Swap") content.push(swapFilesCard());
-  main.replaceChildren(...content);
+  // Contents: the cards of this section, for long pages on wide screens
+  const cards = [...fields.children].filter(el => el.matches("section.card[data-key]"));
+  const toc = h("aside", { class: "toc" });
+  if (cards.length > 1) {
+    toc.append(h("b", {}, t("onThisPage")));
+    for (const card of cards) {
+      const title = card.querySelector(".head h3")?.firstChild?.textContent || card.dataset.key;
+      toc.append(h("a", { href: "#", onclick: e => { e.preventDefault(); card.scrollIntoView({ behavior: "smooth", block: "start" }); } }, title));
+    }
+  }
+  main.replaceChildren(h("div", { class: "page" + (cards.length > 1 ? " with-toc" : "") }, h("div", {}, ...content), toc));
+  // The entry of the card at the top of the screen is highlighted
+  if (cards.length > 1 && "IntersectionObserver" in window) {
+    const links = [...toc.querySelectorAll("a")], visible = new Set();
+    const spy = new IntersectionObserver(entries => {
+      for (const e of entries) e.isIntersecting ? visible.add(e.target) : visible.delete(e.target);
+      const first = cards.findIndex(c => visible.has(c));
+      links.forEach((a, i) => a.classList.toggle("on", i === first));
+    }, { rootMargin: "-70px 0px -55% 0px" });
+    cards.forEach(c => spy.observe(c));
+  }
 }
 
 /* ---------- last run ---------- */
@@ -1552,7 +1721,10 @@ function renderStart() {
 }
 
 /* ---------- boot ---------- */
-window.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && S.config) { e.preventDefault(); save(); } });
+window.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && S.config) { e.preventDefault(); save(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k" && S.config) { e.preventDefault(); document.getElementById("search")?.focus(); }
+});
 window.addEventListener("beforeunload", e => { if (S.dirty) { e.preventDefault(); e.returnValue = ""; } });
 document.addEventListener("dragover", e => e.preventDefault());
 document.addEventListener("drop", e => {
@@ -1566,11 +1738,13 @@ document.addEventListener("drop", e => {
     S.lang = (navigator.language || "").startsWith("ru") ? "ru" : "en";
     try { await refreshState(false); } catch (e) { document.getElementById("app").textContent = e.message; return; }
     if (!S.config) S.section = TAB_GENERATE;
+    else if (location.hash) S.section = decodeURIComponent(location.hash.slice(1));
     render();
     if (generating()) poll();
     return;
   }
   let data = null;
+  if (location.hash) S.section = decodeURIComponent(location.hash.slice(1));
   try { data = JSON.parse(document.getElementById("cg-data").textContent); } catch { /* standalone page */ }
   if (data && data.schema && data.config) {
     S.embedded = true; S.savedAt = data.savedAt || "";
