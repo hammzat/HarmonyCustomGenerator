@@ -90,6 +90,16 @@ namespace CustomGenerator
             public bool Grid = true;
             [Loc("Draw monument names", "Подписывать монументы")]
             public bool MonumentNames = true;
+            [Loc("Draw monument markers", "Рисовать маркеры монументов")]
+            [Desc("A dot under each name, colored by kind: safe zone green, custom purple, small and roadside light, others orange",
+                  "Точка под каждым названием, цвет по типу: безопасная зона зелёная, кастомный фиолетовый, малые и придорожные светлые, остальные оранжевые")]
+            public bool MonumentMarkers = true;
+            [Loc("Draw rails", "Рисовать железную дорогу")]
+            public bool Rails = true;
+            [Loc("Save a clean copy", "Сохранять чистую копию")]
+            [Desc("Also save <name>.clean.png: the map without names, markers, rails, grid and the caption",
+                  "Также сохранять <имя>.clean.png: карту без названий, маркеров, ЖД, сетки и подписи")]
+            public bool SaveCleanCopy = false;
         }
 
         public sealed class GeneratorSettings {

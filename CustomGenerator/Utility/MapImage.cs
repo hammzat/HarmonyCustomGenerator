@@ -2,6 +2,7 @@
 using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Linq;
 using System.Drawing;
 using System.Drawing.Text;
 using System.Drawing.Imaging;
@@ -50,7 +51,7 @@ namespace CustomGenerator.Utility {
             if (!settings.Enabled) { Logging.Info("Map image disabled in the config"); return; }
             CheckResources();
 
-            byte[] array = MapImageRender.Render(out int num, out int num2, out Color color, settings.Scale, false, false, settings.OceanMargin);
+            byte[] array = MapImageRender.Render(out int num, out int num2, out Color color, settings.Scale, false, false, settings.OceanMargin, out byte[] clean);
             if (array == null) {
                 Logging.Error("Map image: the terrain isn't ready, image skipped"); return;
             }
@@ -60,6 +61,11 @@ namespace CustomGenerator.Utility {
             string fullPath = Paths.Get("mapimages", mapName + ".png");
             File.WriteAllBytes(fullPath, array);
             Logging.Info($"Map image saved to {fullPath}");
+            if (clean != null) {
+                string cleanPath = Paths.Get("mapimages", mapName + ".clean.png");
+                File.WriteAllBytes(cleanPath, clean);
+                Logging.Info($"Map image: clean copy saved to {cleanPath}");
+            }
             GenerationReport.Image(fullPath);
         }
     }
@@ -106,7 +112,10 @@ namespace CustomGenerator.Utility {
             public Array2D<T> Clone() => new Array2D<T>((T[])_items.Clone(), _width, _height);
         }
 
+        private enum Kind { Regular, Small, SafeZone, Custom }
+
         private class MapMonument {
+            public Kind kind;
             public string name;
             public int x = 0;
             public int y = 0;
@@ -116,8 +125,11 @@ namespace CustomGenerator.Utility {
         private enum Indication { None = 0, Regular, Smaller, Image }
 
         private static FieldInfo _monuments = AccessTools.TypeByName("TerrainPath").GetField("Monuments", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        private static FieldInfo _rails = AccessTools.TypeByName("TerrainPath").GetField("Rails", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
-        public static byte[] Render(out int imageWidth, out int imageHeight, out Color background, float scale = 0.5f, bool lossy = true, bool transparent = false, int oceanMargin = 500) {
+        // clean: the same image without labels, rails and grid when Save Clean Copy is on, otherwise null
+        public static byte[] Render(out int imageWidth, out int imageHeight, out Color background, float scale, bool lossy, bool transparent, int oceanMargin, out byte[] clean) {
+            clean = null;
             Logging.Info("Map image: rendering...");
             Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -211,6 +223,7 @@ namespace CustomGenerator.Utility {
 
             background = output[0, 0];
 
+            if (Config.MapImage.SaveCleanCopy) clean = EncodeToFile(imageWidth, imageHeight, array, lossy);
             DrawOverlays(array, imageWidth, imageHeight, mapRes, oceanMargin);
 
             Logging.Info($"Map image: rendered in {stopwatch.Elapsed.TotalSeconds:0.0}s, encoding...");
@@ -234,7 +247,9 @@ namespace CustomGenerator.Utility {
             using (Bitmap bitmap = ToBitmap(pixels, imageWidth, imageHeight)) {
                 using (Graphics graphics = Graphics.FromImage(bitmap)) {
                     graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                    if (Config.MapImage.MonumentNames) RenderMonument(graphics, CollectMonuments(imageWidth, mapResolution, oceanMargin), PermanentMarkerFont);
+                    graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                    if (Config.MapImage.Rails) RenderRails(graphics, mapResolution, oceanMargin);
+                    if (Config.MapImage.MonumentNames || Config.MapImage.MonumentMarkers) RenderMonument(graphics, CollectMonuments(imageWidth, mapResolution, oceanMargin), PermanentMarkerFont);
                     RenderGithub(graphics, DinProFontBold, imageWidth);
                     if (Config.MapImage.Grid) RenderGrid(graphics, mapResolution, imageWidth, oceanMargin);
                 }
@@ -262,8 +277,11 @@ namespace CustomGenerator.Utility {
 
                 if (name.ToLower().Contains("train")) { mapMonuments.Add(new MapMonument { name = name, x = x, y = z, indication = Indication.Image }); continue; }
 
+                var kind = monument.IsSafeZone ? Kind.SafeZone
+                    : monument.Type == MonumentType.Lighthouse || monument.Type == MonumentType.WaterWell || monument.Type == MonumentType.Roadside ? Kind.Small
+                    : Kind.Regular;
                 if (monument.shouldDisplayOnMap && monument.mapIcon == null)
-                    mapMonuments.Add(new MapMonument { name = name, x = x, y = z, indication = Indication.Regular });
+                    mapMonuments.Add(new MapMonument { name = name, x = x, y = z, indication = Indication.Regular, kind = kind });
                 else
                     mapMonuments.Add(new MapMonument { name = name, x = x, y = z, indication = Indication.None });
             }
@@ -271,7 +289,7 @@ namespace CustomGenerator.Utility {
             foreach (var custom in tempData.customMonuments) {
                 int x = (int)(((custom.Value.x + (tempData.mapsize / 2.0)) / tempData.mapsize) * mapResolution) + originalMapOffset;
                 int z = (int)(((custom.Value.z + (tempData.mapsize / 2.0)) / tempData.mapsize) * mapResolution) + originalMapOffset;
-                mapMonuments.Add(new MapMonument { name = custom.Key, x = x, y = z, indication = Indication.Regular });
+                mapMonuments.Add(new MapMonument { name = custom.Key, x = x, y = z, indication = Indication.Regular, kind = Kind.Custom });
             }
 
             return mapMonuments;
@@ -325,7 +343,9 @@ namespace CustomGenerator.Utility {
 
         private static byte ToByte(float value) => (byte)Mathf.Clamp(Mathf.FloorToInt(value * 255), 0, 255);
 
-        private static void RenderText(Graphics graphics, string text, Font font, Brush brush, int xx, int zz)
+        // The bitmap is upside down (Unity's rows go bottom-up), so text is drawn mirrored and +y is up on the image.
+        // outline: a halo around the letters, so names stay readable on water and snow
+        private static void RenderText(Graphics graphics, string text, Font font, Brush brush, int xx, int zz, Pen outline = null)
         {
             SizeF textSize = graphics.MeasureString(text, font);
             float textX = xx - (textSize.Width / 2);
@@ -334,8 +354,40 @@ namespace CustomGenerator.Utility {
             graphics.TranslateTransform(textX, textY);
             graphics.RotateTransform(180);
             graphics.ScaleTransform(-1, 1);
-            graphics.DrawString(text, font, brush, 0, -textSize.Height);
+            if (outline == null) graphics.DrawString(text, font, brush, 0, -textSize.Height);
+            else using (var path = new System.Drawing.Drawing2D.GraphicsPath()) {
+                path.AddString(text, font.FontFamily, (int)font.Style, graphics.DpiY * font.SizeInPoints / 72f, new PointF(0, -textSize.Height), StringFormat.GenericDefault);
+                graphics.DrawPath(outline, path);
+                graphics.FillPath(brush, path);
+            }
             graphics.ResetTransform();
+        }
+
+        private static readonly Dictionary<Kind, System.Drawing.Color> MarkerColors = new Dictionary<Kind, System.Drawing.Color> {
+            [Kind.Regular] = System.Drawing.Color.FromArgb(235, 120, 40),
+            [Kind.Small] = System.Drawing.Color.FromArgb(235, 230, 215),
+            [Kind.SafeZone] = System.Drawing.Color.FromArgb(70, 190, 90),
+            [Kind.Custom] = System.Drawing.Color.FromArgb(165, 95, 225),
+        };
+
+        // Surface rails as a dark line with light sleepers, like a train track on a paper map
+        private static void RenderRails(Graphics graphics, int mapResolution, int oceanMargin) {
+            var rails = _rails?.GetValue(tempData.terrainPath) as List<PathList>;
+            if (rails == null || rails.Count == 0) return;
+            float size = tempData.mapsize;
+            float width = Mathf.Max(2f, mapResolution / 900f);
+            using (var bed = new Pen(System.Drawing.Color.FromArgb(220, 35, 35, 35), width * 2f))
+            using (var ties = new Pen(System.Drawing.Color.FromArgb(220, 225, 220, 205), width) { DashPattern = new[] { 2f, 2f } }) {
+                bed.LineJoin = ties.LineJoin = System.Drawing.Drawing2D.LineJoin.Round;
+                foreach (var rail in rails) {
+                    var points = rail?.Path?.Points;
+                    if (points == null || points.Length < 2) continue;
+                    var line = points.Select(p => new PointF((p.x + size / 2f) / size * mapResolution + oceanMargin, (p.z + size / 2f) / size * mapResolution + oceanMargin)).ToArray();
+                    graphics.DrawLines(bed, line);
+                    graphics.DrawLines(ties, line);
+                }
+            }
+            Logging.Info($"Map image: {rails.Count} rails");
         }
 
         private static void RenderGithub(Graphics graphics, string fontPath, int imageResolution) {
@@ -365,13 +417,25 @@ namespace CustomGenerator.Utility {
                 fontCollection.AddFontFile(fontPath);
                 using (Font regular = new Font(fontCollection.Families[0], 20))
                 using (Font smaller = new Font(fontCollection.Families[0], 11))
-                using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Black)) {
+                using (SolidBrush brush = new SolidBrush(System.Drawing.Color.Black))
+                using (Pen halo = new Pen(System.Drawing.Color.FromArgb(200, 255, 255, 255), 4f) { LineJoin = System.Drawing.Drawing2D.LineJoin.Round })
+                using (Pen ring = new Pen(System.Drawing.Color.FromArgb(230, 20, 20, 20), 2f)) {
+                    bool markers = Config.MapImage.MonumentMarkers, names = Config.MapImage.MonumentNames;
+                    const int radius = 7;
                     foreach (MapMonument monument in monuments) {
                         if (monument.indication == Indication.None) continue;
                         if (monument.indication == Indication.Image) continue; // TODO
 
+                        if (markers) {
+                            using (var fill = new SolidBrush(MarkerColors[monument.kind]))
+                                graphics.FillEllipse(fill, monument.x - radius, monument.y - radius, radius * 2, radius * 2);
+                            graphics.DrawEllipse(ring, monument.x - radius, monument.y - radius, radius * 2, radius * 2);
+                        }
+                        if (!names) continue;
                         Font font = monument.indication == Indication.Regular ? regular : smaller;
-                        RenderText(graphics, monument.name, font, brush, monument.x, monument.y);
+                        // With a marker the name goes above it (+y is up on the flipped bitmap)
+                        int y = markers ? monument.y + radius + 2 + (int)(graphics.MeasureString(monument.name, font).Height / 2) : monument.y;
+                        RenderText(graphics, monument.name, font, brush, monument.x, y, halo);
                     }
                 }
             }
