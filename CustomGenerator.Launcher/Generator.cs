@@ -8,7 +8,8 @@ using System.Text;
 
 namespace CustomGenerator.Launcher
 {
-    internal sealed class Run { public int Size; public uint Seed; }
+    // Attempt: 1 for the run asked for, more for the reruns when the map didn't meet the config's requirements
+    internal sealed class Run { public int Size; public uint Seed; public int Attempt = 1; }
 
     // Runs RustDedicated once per map (the mod generates, saves and quits), one after another.
     // Workspace mode: the launcher's folder keeps the mod's files, the server only gets CustomGenerator.dll for the time of a run.
@@ -21,6 +22,9 @@ namespace CustomGenerator.Launcher
         private const string ModFile = "CustomGenerator.dll";
         // Next to the DLL in the server's HarmonyMods while it's ours: tells a copy we put there from one installed by hand
         private const string MarkerFile = "CustomGenerator.dll.launcher";
+        // The mod quits with it when the map misses required monuments and it has attempts left
+        private const int RerollExitCode = 3;
+        private static readonly Random Seeds = new Random();
 
         private readonly string _root;
         private readonly object _lock = new object();
@@ -165,7 +169,7 @@ namespace CustomGenerator.Launcher
             string workspace = Workspace ? " -cgen.workspace " + Quote(_root) : "";
             var info = new ProcessStartInfo(Executable,
                 $"-batchmode -nographics -logfile {Quote(_log)}{workspace} +server.identity {Identity} +server.level \"Procedural Map\" " +
-                $"+server.worldsize {run.Size} +server.seed {run.Seed} {Ports} {_extra}".TrimEnd()) {
+                $"+server.worldsize {run.Size} +server.seed {run.Seed} -cgen.attempt {run.Attempt} {Ports} {_extra}".TrimEnd()) {
                 WorkingDirectory = ServerDir, UseShellExecute = false, CreateNoWindow = true,
             };
             try {
@@ -175,7 +179,7 @@ namespace CustomGenerator.Launcher
                 _process.Exited += (s, e) => OnExit();
                 _current = run;
                 _started = DateTime.Now;
-                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Generating {run.Size} / {run.Seed}");
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Generating {run.Size} / {run.Seed}" + (run.Attempt > 1 ? $" (attempt {run.Attempt})" : ""));
                 return null;
             } catch (Exception ex) {
                 _process = null;
@@ -189,11 +193,19 @@ namespace CustomGenerator.Launcher
                 if (_current != null) {
                     int code = 0;
                     try { code = _process.ExitCode; } catch { }
+                    bool reroll = code == RerollExitCode && !_stopping;
                     _done.Add(new Dictionary<string, object> {
                         ["size"] = _current.Size, ["seed"] = _current.Seed, ["exitCode"] = code, ["stopped"] = _stopping,
-                        ["seconds"] = (int)(DateTime.Now - _started).TotalSeconds,
+                        ["seconds"] = (int)(DateTime.Now - _started).TotalSeconds, ["attempt"] = _current.Attempt, ["rerolled"] = reroll,
                     });
-                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Finished {_current.Size} / {_current.Seed} ({(_stopping ? "stopped" : "exit code " + code)})");
+                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Finished {_current.Size} / {_current.Seed} ({(_stopping ? "stopped" : reroll ? "requirements not met, trying another seed" : "exit code " + code)})");
+                    // Next attempt goes first, before the rest of the queue
+                    if (reroll) {
+                        var rest = _queue.ToList();
+                        _queue.Clear();
+                        _queue.Enqueue(new Run { Size = _current.Size, Seed = (uint)Seeds.Next(1, int.MaxValue), Attempt = _current.Attempt + 1 });
+                        foreach (var run in rest) _queue.Enqueue(run);
+                    }
                 }
                 _process = null;
                 Cleanup();
@@ -209,7 +221,7 @@ namespace CustomGenerator.Launcher
                 return new Dictionary<string, object> {
                     ["running"] = _process != null,
                     ["current"] = _current == null ? null : new Dictionary<string, object> {
-                        ["size"] = _current.Size, ["seed"] = _current.Seed, ["seconds"] = (int)(DateTime.Now - _started).TotalSeconds,
+                        ["size"] = _current.Size, ["seed"] = _current.Seed, ["seconds"] = (int)(DateTime.Now - _started).TotalSeconds, ["attempt"] = _current.Attempt,
                     },
                     ["queued"] = _queue.Select(x => new Dictionary<string, object> { ["size"] = x.Size, ["seed"] = x.Seed }).ToArray(),
                     ["done"] = _done.ToArray(),

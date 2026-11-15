@@ -27,6 +27,7 @@ namespace CustomGenerator.Utility
         private static readonly Dictionary<string, SortedSet<string>> GroupPrefabs = new Dictionary<string, SortedSet<string>>();
         private static string _swapSavedTo, _imagePath;
         private static WorldSummary _summary;
+        private static MapRequirements.Result _requirements;
 
         public static int Warnings, Errors;
 
@@ -52,8 +53,9 @@ namespace CustomGenerator.Utility
 
         public static void SwapSaved(string path) => _swapSavedTo = path;
         public static void Image(string path) => _imagePath = path;
+        public static void Requirements(MapRequirements.Result result) => _requirements = result;
 
-        // Taken once the map is done
+        // Taken once the map is done, before the report: the monument requirements check it too
         public static WorldSummary Summary => _summary ??= WorldSummary.Collect(CustomMonuments.SelectMany(x => Enumerable.Repeat(x.Name, x.Placed)));
 
         // Monuments the group could place but none of whose variants made it to the map (harbor_1 and harbor_2 are one
@@ -76,11 +78,12 @@ namespace CustomGenerator.Utility
             return copies.Key == null || copies.Value > 0;
         }
 
-        public static void Write(string mapPath) {
+        // rejected: the map didn't meet the requirements and is generated again, so no report file next to it
+        public static void Write(string mapPath, bool rejected = false) {
             var elapsed = DateTime.Now - Process.GetCurrentProcess().StartTime;
             string report = BuildText(mapPath, elapsed);
             foreach (var line in report.Split('\n')) Logging.Info(line.TrimEnd('\r'));
-            try {
+            if (!rejected) try {
                 string reportPath = Path.ChangeExtension(Path.GetFullPath(mapPath), ".report.txt");
                 File.WriteAllText(reportPath, report.Replace("\r\n", "\n").Replace("\n", Environment.NewLine) + Environment.NewLine);
                 Logging.Info($"Report saved to {reportPath}");
@@ -112,6 +115,13 @@ namespace CustomGenerator.Utility
             if (world.Biomes.Count > 0)
                 text.AppendLine("  Biomes: " + string.Join(", ", world.Biomes.Select(x => $"{x.Key} {x.Value:0.0}%")));
             text.AppendLine("  " + string.Join(", ", world.Counts.Where(x => x.Value > 0).Select(x => $"{x.Key} {x.Value}")));
+
+            if (_requirements != null) {
+                text.AppendLine();
+                string state = _requirements.Met ? "met" : _requirements.Reroll ? "not met, generating again" : "NOT met";
+                text.AppendLine($"Requirements: {state} (attempt {_requirements.Attempt}/{_requirements.MaxAttempts})");
+                if (!_requirements.Met) text.AppendLine($"  Missing: {MapRequirements.Describe(_requirements)}");
+            }
 
             if (Groups.Count > 0) {
                 text.AppendLine();
@@ -160,6 +170,9 @@ namespace CustomGenerator.Utility
             ["groups"] = new JArray(Groups.Select(x => new JObject {
                 ["name"] = x.Name, ["folder"] = x.Folder, ["target"] = x.Target, ["prefabs"] = new JArray(x.Prefabs), ["missing"] = new JArray(Missing(x)) })),
             ["world"] = WorldJson(Summary),
+            ["requirements"] = _requirements == null ? null : new JObject {
+                ["met"] = _requirements.Met, ["reroll"] = _requirements.Reroll, ["attempt"] = _requirements.Attempt, ["maxAttempts"] = _requirements.MaxAttempts,
+                ["missing"] = new JArray(_requirements.Missing.Select(x => new JObject { ["name"] = x.Name, ["need"] = x.Need, ["have"] = x.Have })) },
             ["custom"] = new JArray(CustomMonuments.Select(x => new JObject {
                 ["name"] = x.Name, ["placed"] = x.Placed, ["count"] = x.Count, ["note"] = x.Note })),
             ["swap"] = new JArray(Swaps.Select(x => new JObject {

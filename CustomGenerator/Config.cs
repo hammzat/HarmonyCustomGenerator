@@ -52,6 +52,9 @@ namespace CustomGenerator
             [Loc("Custom Monuments", "Кастомные Монументы")]
             public CustomMonumentSettings CustomMonuments = new();
 
+            [Loc("Map Requirements", "Требования к Карте")]
+            public RequirementSettings Requirements = new();
+
             [JsonProperty(Order = -1)]
             [Desc("Mod version the config was written by. Don't edit", "Версия мода, которой записан конфиг. Не изменяйте")]
             [Schema(ReadOnly = true)]
@@ -187,6 +190,23 @@ namespace CustomGenerator
             public int MinDistanceSameType = 500;
             [Desc("Where the monument may stand", "Где может стоять монумент")]
             public SpawnFilterCfg Filter = new SpawnFilterCfg();
+        }
+
+        public sealed class RequirementSettings {
+            [Loc("Enabled", "Включить")]
+            public bool Enabled = false;
+            [Desc("\"part of name\": N - the map needs at least N such monuments. Prefab names like \"launch_site\", \"harbor\", \"airfield_1\" or a custom monument's Name",
+                  "\"часть имени\": N - на карте должно быть не меньше N таких монументов. Имена префабов, например \"launch_site\", \"harbor\", \"airfield_1\", или Name кастомного монумента")]
+            [Schema(Min = 1, Suggest = "monuments")]
+            public Dictionary<string, int> Monuments = new Dictionary<string, int>();
+            [Desc("Reroll: generate again with a random seed until the map has everything (only with the launcher). Warn: keep the map, list what's missing",
+                  "Reroll: генерировать заново со случайным сидом, пока на карте не будет всего (только через лаунчер). Warn: оставить карту, перечислить чего нет")]
+            [Schema(Values = new[] { "Reroll", "Warn" })]
+            public string OnMissing = "Reroll";
+            [Desc("Attempts in total, the first one included. After the last one the map is kept as it is",
+                  "Всего попыток, вместе с первой. После последней карта остаётся как есть")]
+            [Schema(Min = 1, Max = 100)]
+            public int MaxAttempts = 10;
         }
 
         public sealed class SwapSettings {
@@ -483,6 +503,21 @@ namespace CustomGenerator
             if (image.OceanMargin < 0) {
                 Logging.Warning($"Map image ocean margin must be >= 0 (got {image.OceanMargin}), using 0");
                 image.OceanMargin = 0;
+            }
+
+            var req = Config.Requirements ??= new RequirementSettings();
+            req.Monuments ??= new Dictionary<string, int>();
+            foreach (var key in req.Monuments.Keys.Where(x => string.IsNullOrWhiteSpace(x) || req.Monuments[x] < 1).ToList()) {
+                Logging.Warning($"Map requirements: '{key}': {req.Monuments[key]} skipped, needs a name and a count of at least 1");
+                req.Monuments.Remove(key);
+            }
+            if (req.OnMissing != "Reroll" && req.OnMissing != "Warn") {
+                Logging.Warning($"Map requirements: OnMissing must be Reroll or Warn (got '{req.OnMissing}'), using Reroll");
+                req.OnMissing = "Reroll";
+            }
+            if (req.MaxAttempts < 1 || req.MaxAttempts > 100) {
+                Logging.Warning($"Map requirements: MaxAttempts must be 1-100 (got {req.MaxAttempts}), using {Mathf.Clamp(req.MaxAttempts, 1, 100)}");
+                req.MaxAttempts = Mathf.Clamp(req.MaxAttempts, 1, 100);
             }
 
             if (gen.RiverWidthScale <= 0f) {
