@@ -26,6 +26,8 @@ namespace CustomGenerator.Utility
         private static readonly List<Swapped> Swaps = new List<Swapped>();
         private static readonly Dictionary<string, SortedSet<string>> GroupPrefabs = new Dictionary<string, SortedSet<string>>();
         private static string _swapSavedTo, _imagePath;
+        private static WorldSummary _summary;
+        private static MapRequirements.Result _requirements;
 
         public static int Warnings, Errors;
 
@@ -51,12 +53,38 @@ namespace CustomGenerator.Utility
 
         public static void SwapSaved(string path) => _swapSavedTo = path;
         public static void Image(string path) => _imagePath = path;
+        public static void Requirements(MapRequirements.Result result) => _requirements = result;
 
-        public static void Write(string mapPath) {
+        // Taken once the map is done, before the report: the monument requirements check it too
+        public static WorldSummary Summary => _summary ??= WorldSummary.Collect(CustomMonuments.SelectMany(x => Enumerable.Repeat(x.Name, x.Placed)));
+
+        // Monuments the group could place but none of whose variants made it to the map (harbor_1 and harbor_2 are one
+        // monument). Names the config's prefab rules took out don't count, nor groups of nature (caves, lakes, ...)
+        private static List<string> Missing(Group group) {
+            if (group.Folder == null || NatureFolders.Any(group.Folder.Contains) || !GroupPrefabs.TryGetValue(group.Folder, out var all)) return new List<string>();
+            var cfg = ExtConfig.Config.Monuments.Enabled ? ExtConfig.Config.Monuments.monuments.FirstOrDefault(x => x.ShouldChange && x.Folder == group.Folder) : null;
+            var placed = new HashSet<string>(group.Prefabs.Select(Kind));
+            var blocked = new HashSet<string>(Patches.PrefabFilter.Results().SelectMany(x => x.Names));
+            return all.Where(x => (cfg == null || Allowed(cfg, x)) && !blocked.Contains(x)).Select(Kind).Distinct().Where(x => !placed.Contains(x)).ToList();
+        }
+
+        private static readonly string[] NatureFolders = { "cave", "unique_environment", "tunnel", "swamp", "ice_lake", "mountain", "tiny" };
+        private static readonly System.Text.RegularExpressions.Regex Variant = new System.Text.RegularExpressions.Regex(@"_(?:[a-z]|\d+)$");
+        private static string Kind(string prefab) => Variant.Replace(prefab, "");
+
+        private static bool Allowed(ExtConfig.Monument cfg, string name) {
+            if (cfg.IncludePrefabs.Count > 0 && !cfg.IncludePrefabs.Any(name.Contains)) return false;
+            if (cfg.ExcludePrefabs.Any(name.Contains)) return false;
+            var copies = cfg.PrefabCopies.FirstOrDefault(x => name.Contains(x.Key));
+            return copies.Key == null || copies.Value > 0;
+        }
+
+        // rejected: the map didn't meet the requirements and is generated again, so no report file next to it
+        public static void Write(string mapPath, bool rejected = false) {
             var elapsed = DateTime.Now - Process.GetCurrentProcess().StartTime;
             string report = BuildText(mapPath, elapsed);
             foreach (var line in report.Split('\n')) Logging.Info(line.TrimEnd('\r'));
-            try {
+            if (!rejected) try {
                 string reportPath = Path.ChangeExtension(Path.GetFullPath(mapPath), ".report.txt");
                 File.WriteAllText(reportPath, report.Replace("\r\n", "\n").Replace("\n", Environment.NewLine) + Environment.NewLine);
                 Logging.Info($"Report saved to {reportPath}");
@@ -65,7 +93,14 @@ namespace CustomGenerator.Utility
             }
 
             try {
-                File.WriteAllText(LastRunLocation, BuildJson(mapPath, elapsed, report).ToString(Formatting.Indented));
+                var json = BuildJson(mapPath, elapsed, report);
+                File.WriteAllText(LastRunLocation, json.ToString(Formatting.Indented));
+                // Next to the map for the editor's map gallery: the last run data without the long parts
+                if (!rejected) {
+                    var summary = (JObject)json.DeepClone();
+                    foreach (var key in new[] { "text", "groups", "swapFiles", "log" }) summary.Remove(key);
+                    File.WriteAllText(Path.ChangeExtension(Path.GetFullPath(mapPath), ".summary.json"), summary.ToString(Formatting.None));
+                }
                 SavePrefabNames();
                 ConfigEditor.Refresh();
             } catch (Exception ex) {
@@ -81,6 +116,21 @@ namespace CustomGenerator.Utility
             text.AppendLine($"Size:  {World.Size}, seed {World.Seed}");
             text.AppendLine($"Time:  {Format(elapsed)} since server start");
 
+            var world = Summary;
+            text.AppendLine();
+            text.AppendLine("World:");
+            text.AppendLine($"  Land {world.LandPercent:0}%, islands {world.Islands}, rivers {world.Rivers}, roads {world.Roads}, rails {world.Rails}, powerlines {world.Powerlines}");
+            if (world.Biomes.Count > 0)
+                text.AppendLine("  Biomes: " + string.Join(", ", world.Biomes.Select(x => $"{x.Key} {x.Value:0.0}%")));
+            text.AppendLine("  " + string.Join(", ", world.Counts.Where(x => x.Value > 0).Select(x => $"{x.Key} {x.Value}")));
+
+            if (_requirements != null) {
+                text.AppendLine();
+                string state = _requirements.Met ? "met" : _requirements.Reroll ? "not met, generating again" : "NOT met";
+                text.AppendLine($"Requirements: {state} (attempt {_requirements.Attempt}/{_requirements.MaxAttempts})");
+                if (!_requirements.Met) text.AppendLine($"  Missing: {MapRequirements.Describe(_requirements)}");
+            }
+
             if (Groups.Count > 0) {
                 text.AppendLine();
                 text.AppendLine("Monuments:");
@@ -89,7 +139,19 @@ namespace CustomGenerator.Utility
                     string count = group.Target >= 0 ? $"{group.Prefabs.Count}/{group.Target}" : group.Prefabs.Count.ToString();
                     string names = string.Join(", ", group.Prefabs.GroupBy(x => x).Select(x => x.Count() > 1 ? $"{x.Key} x{x.Count()}" : x.Key));
                     text.AppendLine($"  {group.Name.PadRight(width)}  {count,5}  {names}".TrimEnd());
+                    var missing = Missing(group);
+                    if (missing.Count > 0) text.AppendLine($"  {"".PadRight(width)}         not placed: {string.Join(", ", missing)}");
                 }
+            }
+
+            var blockedPrefabs = Patches.PrefabFilter.Results().ToList();
+            if (blockedPrefabs.Count > 0) {
+                text.AppendLine();
+                text.AppendLine("Blocked prefabs:");
+                int width = blockedPrefabs.Max(x => x.Pattern.Length);
+                foreach (var rule in blockedPrefabs)
+                    text.AppendLine($"  {rule.Pattern.PadRight(width)}  {rule.Names.Count} prefabs out of the candidates, {rule.Placements} placements stopped"
+                        + (rule.Names.Count > 0 ? $": {string.Join(", ", rule.Names.Take(12))}{(rule.Names.Count > 12 ? ", ..." : "")}" : ""));
             }
 
             if (CustomMonuments.Count > 0) {
@@ -124,7 +186,13 @@ namespace CustomGenerator.Utility
             ["seed"] = World.Seed,
             ["seconds"] = (int)elapsed.TotalSeconds,
             ["groups"] = new JArray(Groups.Select(x => new JObject {
-                ["name"] = x.Name, ["folder"] = x.Folder, ["target"] = x.Target, ["prefabs"] = new JArray(x.Prefabs) })),
+                ["name"] = x.Name, ["folder"] = x.Folder, ["target"] = x.Target, ["prefabs"] = new JArray(x.Prefabs), ["missing"] = new JArray(Missing(x)) })),
+            ["world"] = WorldJson(Summary),
+            ["blocked"] = new JArray(Patches.PrefabFilter.Results().Select(x => new JObject {
+                ["pattern"] = x.Pattern, ["names"] = new JArray(x.Names), ["placements"] = x.Placements })),
+            ["requirements"] = _requirements == null ? null : new JObject {
+                ["met"] = _requirements.Met, ["reroll"] = _requirements.Reroll, ["attempt"] = _requirements.Attempt, ["maxAttempts"] = _requirements.MaxAttempts,
+                ["missing"] = new JArray(_requirements.Missing.Select(x => new JObject { ["name"] = x.Name, ["need"] = x.Need, ["have"] = x.Have })) },
             ["custom"] = new JArray(CustomMonuments.Select(x => new JObject {
                 ["name"] = x.Name, ["placed"] = x.Placed, ["count"] = x.Count, ["note"] = x.Note })),
             ["swap"] = new JArray(Swaps.Select(x => new JObject {
@@ -134,6 +202,18 @@ namespace CustomGenerator.Utility
             ["errors"] = Errors,
             ["log"] = Relative(Logging.LogFilePath),
             ["text"] = text,
+        };
+
+        private static JObject WorldJson(WorldSummary world) => new JObject {
+            ["land"] = Math.Round(world.LandPercent, 1),
+            ["islands"] = world.Islands,
+            ["rivers"] = world.Rivers,
+            ["roads"] = world.Roads,
+            ["rails"] = world.Rails,
+            ["powerlines"] = world.Powerlines,
+            ["biomes"] = new JObject(world.Biomes.Select(x => new JProperty(x.Key, Math.Round(x.Value, 1)))),
+            ["counts"] = new JObject(world.Counts.Select(x => new JProperty(x.Key, x.Value))),
+            ["monuments"] = new JObject(world.Monuments.OrderBy(x => x.Key).Select(x => new JProperty(x.Key, x.Value))),
         };
 
         // Swap files and whether a prefab with that name exists in this Rust version at all

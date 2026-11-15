@@ -52,6 +52,9 @@ namespace CustomGenerator
             [Loc("Custom Monuments", "Кастомные Монументы")]
             public CustomMonumentSettings CustomMonuments = new();
 
+            [Loc("Map Requirements", "Требования к Карте")]
+            public RequirementSettings Requirements = new();
+
             [JsonProperty(Order = -1)]
             [Desc("Mod version the config was written by. Don't edit", "Версия мода, которой записан конфиг. Не изменяйте")]
             [Schema(ReadOnly = true)]
@@ -87,6 +90,16 @@ namespace CustomGenerator
             public bool Grid = true;
             [Loc("Draw monument names", "Подписывать монументы")]
             public bool MonumentNames = true;
+            [Loc("Draw monument markers", "Рисовать маркеры монументов")]
+            [Desc("A dot under each name, colored by kind: safe zone green, custom purple, small and roadside light, others orange",
+                  "Точка под каждым названием, цвет по типу: безопасная зона зелёная, кастомный фиолетовый, малые и придорожные светлые, остальные оранжевые")]
+            public bool MonumentMarkers = true;
+            [Loc("Draw rails", "Рисовать железную дорогу")]
+            public bool Rails = true;
+            [Loc("Save a clean copy", "Сохранять чистую копию")]
+            [Desc("Also save <name>.clean.png: the map without names, markers, rails, grid and the caption",
+                  "Также сохранять <имя>.clean.png: карту без названий, маркеров, ЖД, сетки и подписи")]
+            public bool SaveCleanCopy = false;
         }
 
         public sealed class GeneratorSettings {
@@ -96,12 +109,32 @@ namespace CustomGenerator
             public SimplePath Rail = new();
             [Desc("Oases, canyons and lakes on any map size", "Оазисы, каньоны и озёра на любом размере карты")]
             public UniqueEnviroment UniqueEnviroment = new();
+            [Loc("Land shape", "Форма суши")]
+            [Desc("Reshapes the base terrain before everything else is placed: more or less land, higher or flatter mountains, wide beaches",
+                  "Меняет исходный рельеф до того, как на него что-то ставится: больше или меньше суши, выше или ниже горы, широкие пляжи")]
+            public LandShapeSettings LandShape = new();
 
             [Loc("Remove Rivers", "Удалить реки")]
             public bool RemoveRivers = false;
             [Loc("River width scale (1 = default)", "Множитель ширины рек (1 = по умолчанию)")]
             [Schema(Min = 0)]
             public float RiverWidthScale = 1f;
+
+            [Loc("Max rivers (0 = vanilla)", "Максимум рек (0 = как в игре)")]
+            [Desc("The game keeps at most 2 rivers, 3 on maps over 4000; jungle rivers don't count. More rivers need room: each one needs a slope to start and the spacing below",
+                  "Игра оставляет не больше 2 рек, 3 на картах больше 4000; реки джунглей не считаются. Для большего числа нужно место: склон для начала и расстояние ниже")]
+            [Schema(Min = 0, Max = 50)]
+            public int MaxRivers = 0;
+            [Loc("Min distance between rivers (m)", "Мин. расстояние между реками (м)")]
+            [Desc("Vanilla 520. Less lets more rivers fit", "В игре 520. Меньше - поместится больше рек")]
+            [Schema(Min = 50)]
+            public float RiverSpacing = 520f;
+
+            [Loc("Decor density (part of folder: multiplier)", "Плотность декора (часть папки: множитель)")]
+            [Desc("More or fewer decor and resources by their folder under autospawn/, e.g. \"decor/iceberg\": 3, \"resource/ores\": 2, \"decor/v3_rock_formations\": 0.5. 0 = none",
+                  "Больше или меньше декора и ресурсов по папке в autospawn/, например \"decor/iceberg\": 3, \"resource/ores\": 2, \"decor/v3_rock_formations\": 0.5. 0 = ни одного")]
+            [Schema(Min = 0)]
+            public Dictionary<string, float> DecorDensity = new Dictionary<string, float>();
 
             [Loc("Remove Car Wrecks around Road", "Удалить разбитые префабы машин около дороги")]
             public bool RemoveCarWrecks = false;
@@ -114,6 +147,19 @@ namespace CustomGenerator
 
             [Loc("Remove underground tunnels (also removes entrances)", "Удалить подземные туннели (вместе со входами)")]
             public bool RemoveTunnels = false;
+            [Loc("No rail link to the metro", "Без связи ЖД с метро")]
+            [Desc("Tunnel entrances where the surface rail goes underground aren't placed: the surface rail and the metro stay apart. Entrances for players stay",
+                  "Входы в туннели, где наземная ЖД уходит под землю, не ставятся: наземная ЖД и метро не связаны. Входы для игроков остаются")]
+            public bool RemoveRailLinks = false;
+
+            [Loc("Blocked prefabs", "Заблокированные префабы")]
+            [Desc("Prefabs that never get on the map: a part of the path (\"decor/iceberg\", \"monument/cave/\"), a full path for an exact match, * for any text. Case doesn't matter. Doesn't touch custom monuments and the swap",
+                  "Префабы, которые никогда не попадут на карту: часть пути (\"decor/iceberg\", \"monument/cave/\"), полный путь для точного совпадения, * для любого текста. Регистр не важен. Не трогает кастомные монументы и свап")]
+            public List<string> BlockedPrefabs = new List<string>();
+            [Loc("Remove grass", "Убрать траву")]
+            [Desc("Grass ground texture becomes dirt, so no grass grows. Changes the look of the map",
+                  "Текстура травы становится землёй, и трава не растёт. Меняет вид карты")]
+            public bool RemoveGrass = false;
 
             [Loc("Change percentages", "Изменить проценты")]
             public bool ModifyPercentages = false;
@@ -138,8 +184,12 @@ namespace CustomGenerator
         public class CustomMonument {
             [Desc("Place this monument", "Размещать этот монумент")]
             public bool Enabled = true;
-            [Desc("Name for the log, the file name is used if empty", "Имя для лога, если пусто - используется имя файла")]
+            [Desc("Name on the in-game map, the map image and in the log, the file name is used if empty",
+                  "Имя на карте в игре, на превью и в логе, если пусто - используется имя файла")]
             public string Name = "";
+            [Desc("Name the monument on the in-game map with Name: adds a monument marker in the center, the file's own markers get Name too",
+                  "Подписать монумент на карте в игре именем из Name: ставит монумент-маркер в центр, свои маркеры файла тоже получают Name")]
+            public bool MapMarker = true;
             [Desc("File in the custom monuments folder, e.g. \"my_gas_station.map\" or \"my_gas_station.prefab\"",
                   "Файл в папке кастомных монументов, например \"my_gas_station.map\" или \"my_gas_station.prefab\"")]
             [Schema(Suggest = "customFiles")]
@@ -183,6 +233,23 @@ namespace CustomGenerator
             public int MinDistanceSameType = 500;
             [Desc("Where the monument may stand", "Где может стоять монумент")]
             public SpawnFilterCfg Filter = new SpawnFilterCfg();
+        }
+
+        public sealed class RequirementSettings {
+            [Loc("Enabled", "Включить")]
+            public bool Enabled = false;
+            [Desc("\"part of name\": N - the map needs at least N such monuments. Prefab names like \"launch_site\", \"harbor\", \"airfield_1\" or a custom monument's Name",
+                  "\"часть имени\": N - на карте должно быть не меньше N таких монументов. Имена префабов, например \"launch_site\", \"harbor\", \"airfield_1\", или Name кастомного монумента")]
+            [Schema(Min = 1, Suggest = "monuments")]
+            public Dictionary<string, int> Monuments = new Dictionary<string, int>();
+            [Desc("Reroll: generate again with a random seed until the map has everything (only with the launcher). Warn: keep the map, list what's missing",
+                  "Reroll: генерировать заново со случайным сидом, пока на карте не будет всего (только через лаунчер). Warn: оставить карту, перечислить чего нет")]
+            [Schema(Values = new[] { "Reroll", "Warn" })]
+            public string OnMissing = "Reroll";
+            [Desc("Attempts in total, the first one included. After the last one the map is kept as it is",
+                  "Всего попыток, вместе с первой. После последней карта остаётся как есть")]
+            [Schema(Min = 1, Max = 100)]
+            public int MaxAttempts = 10;
         }
 
         public sealed class SwapSettings {
@@ -306,6 +373,44 @@ namespace CustomGenerator
             public bool GenerateOasis = true;
             public bool GenerateCanyons = true;
             public bool GenerateLakes = true;
+        }
+
+        public sealed class LandShapeSettings {
+            [Loc("Land level (m)", "Уровень суши (м)")]
+            [Desc("Raises (+) or lowers (-) the whole terrain against the sea. +10 turns shallow water into land: bigger islands, fewer straits. -10 floods lowlands: smaller islands, more of them. The map edge stays ocean",
+                  "Поднимает (+) или опускает (-) весь рельеф относительно моря. +10 превращает мелководье в сушу: острова больше, проливов меньше. -10 топит низины: острова меньше и их больше. Край карты остаётся океаном")]
+            [Schema(Min = -60, Max = 60)]
+            public float LandLevel = 0f;
+            [Loc("Mountain height (1 = default)", "Высота гор (1 = по умолчанию)")]
+            [Desc("Multiplies the height of everything above sea level. 0.5 = low hills, 1.5 = tall mountains",
+                  "Умножает высоту всего, что выше уровня моря. 0.5 = низкие холмы, 1.5 = высокие горы")]
+            [Schema(Min = 0.2, Max = 3)]
+            public float MountainHeight = 1f;
+            [Loc("Flat beaches (m)", "Плоские пляжи (м)")]
+            [Desc("Land up to this height above the sea gets flatter, so coasts become wide beaches instead of slopes. 0 = off, 5-15 is a good range",
+                  "Суша до этой высоты над морем становится площе, и берега превращаются в широкие пляжи вместо склонов. 0 = выкл, хорошо 5-15")]
+            [Schema(Min = 0, Max = 40)]
+            public float BeachHeight = 0f;
+            [Loc("Shallow shelf (m)", "Мелководье (м)")]
+            [Desc("Water down to this depth gets shallower, so there's a wide strip of shallow water along the coasts. 0 = off",
+                  "Вода до этой глубины становится мельче, и вдоль берегов появляется широкая полоса мелководья. 0 = выкл")]
+            [Schema(Min = 0, Max = 40)]
+            public float ShelfDepth = 0f;
+            [Loc("Fill inland sea", "Засыпать внутренние моря")]
+            [Desc("Land below sea level that isn't connected to the ocean (salt water lakes inside islands) is raised just above the sea",
+                  "Суша ниже уровня моря, не связанная с океаном (солёные озёра внутри островов), поднимается чуть выше моря")]
+            public bool FillInlandSea = false;
+            [Loc("Volcano height (m, 0 = none)", "Высота вулкана (м, 0 = нет)")]
+            [Desc("A lone cone with a crater on the land point furthest from the water. 150-250 looks right",
+                  "Одинокий конус с кратером в точке суши, дальше всего от воды. Хорошо смотрится 150-250")]
+            [Schema(Min = 0, Max = 400)]
+            public float VolcanoHeight = 0f;
+            [Loc("Volcano radius (m)", "Радиус вулкана (м)")]
+            [Desc("Smaller on a narrow island, so the cone stays on land", "Меньше на узком острове, чтобы конус остался на суше")]
+            [Schema(Min = 100, Max = 1500)]
+            public float VolcanoRadius = 450f;
+
+            public bool Changes => LandLevel != 0f || MountainHeight != 1f || BeachHeight > 0f || ShelfDepth > 0f || FillInlandSea || VolcanoHeight > 0f;
         }
 
         public sealed class TierSettings {
@@ -479,6 +584,43 @@ namespace CustomGenerator
             if (image.OceanMargin < 0) {
                 Logging.Warning($"Map image ocean margin must be >= 0 (got {image.OceanMargin}), using 0");
                 image.OceanMargin = 0;
+            }
+
+            var req = Config.Requirements ??= new RequirementSettings();
+            req.Monuments ??= new Dictionary<string, int>();
+            foreach (var key in req.Monuments.Keys.Where(x => string.IsNullOrWhiteSpace(x) || req.Monuments[x] < 1).ToList()) {
+                Logging.Warning($"Map requirements: '{key}': {req.Monuments[key]} skipped, needs a name and a count of at least 1");
+                req.Monuments.Remove(key);
+            }
+            if (req.OnMissing != "Reroll" && req.OnMissing != "Warn") {
+                Logging.Warning($"Map requirements: OnMissing must be Reroll or Warn (got '{req.OnMissing}'), using Reroll");
+                req.OnMissing = "Reroll";
+            }
+            if (req.MaxAttempts < 1 || req.MaxAttempts > 100) {
+                Logging.Warning($"Map requirements: MaxAttempts must be 1-100 (got {req.MaxAttempts}), using {Mathf.Clamp(req.MaxAttempts, 1, 100)}");
+                req.MaxAttempts = Mathf.Clamp(req.MaxAttempts, 1, 100);
+            }
+
+            if (gen.MaxRivers < 0 || gen.MaxRivers > 50) {
+                Logging.Warning($"Max rivers must be 0-50 (got {gen.MaxRivers}), using {Mathf.Clamp(gen.MaxRivers, 0, 50)}");
+                gen.MaxRivers = Mathf.Clamp(gen.MaxRivers, 0, 50);
+            }
+            if (gen.RiverSpacing < 50f) {
+                Logging.Warning($"Min distance between rivers must be at least 50 (got {gen.RiverSpacing}), using 50");
+                gen.RiverSpacing = 50f;
+            }
+            gen.DecorDensity ??= new Dictionary<string, float>();
+            gen.LandShape ??= new LandShapeSettings();
+            var land = gen.LandShape;
+            land.LandLevel = Mathf.Clamp(land.LandLevel, -60f, 60f);
+            land.MountainHeight = Mathf.Clamp(land.MountainHeight, 0.2f, 3f);
+            land.BeachHeight = Mathf.Clamp(land.BeachHeight, 0f, 40f);
+            land.ShelfDepth = Mathf.Clamp(land.ShelfDepth, 0f, 40f);
+            land.VolcanoHeight = Mathf.Clamp(land.VolcanoHeight, 0f, 400f);
+            land.VolcanoRadius = Mathf.Clamp(land.VolcanoRadius, 100f, 1500f);
+            foreach (var key in gen.DecorDensity.Keys.Where(x => string.IsNullOrWhiteSpace(x) || gen.DecorDensity[x] < 0f).ToList()) {
+                Logging.Warning($"Decor density '{key}': {gen.DecorDensity[key]} skipped, needs a folder and a multiplier of 0 or more");
+                gen.DecorDensity.Remove(key);
             }
 
             if (gen.RiverWidthScale <= 0f) {

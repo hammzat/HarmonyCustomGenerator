@@ -43,6 +43,13 @@
     <Compile Include="Shared\MapExtras.cs" />
     <Compile Include="HarmonyHooks.cs" />
     <Compile Include="Patches\Monuments.cs" />
+    <Compile Include="Patches\PrefabFilter.cs" />
+    <Compile Include="Patches\DecorDensity.cs" />
+    <Compile Include="Patches\RiverCount.cs" />
+    <Compile Include="Patches\RemoveGrass.cs" />
+    <Compile Include="Patches\StepProgress.cs" />
+    <Compile Include="Patches\LandShape.cs" />
+    <Compile Include="Patches\RailLinks.cs" />
     <Compile Include="Patches\RailRing.cs" />
     <Compile Include="Patches\River.cs" />
     <Compile Include="Patches\RoadRing.cs" />
@@ -56,6 +63,8 @@
     <Compile Include="Utility\Logger.cs" />
     <Compile Include="Utility\MapImage.cs" />
     <Compile Include="Utility\Paths.cs" />
+    <Compile Include="Utility\MapRequirements.cs" />
+    <Compile Include="Utility\WorldSummary.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Properties\.editorconfig" />

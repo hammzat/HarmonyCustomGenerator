@@ -17,6 +17,8 @@ namespace CustomGenerator.Custom
     internal sealed class CustomMonumentData
     {
         public const uint SpawnPointId = 2749405185u;
+        // assets/bundled/prefabs/modding/volumes_and_triggers/monument_marker.prefab: the game map shows its category as the name
+        public const uint MonumentMarkerId = 1724395471u;
         private const float HeightOffset = -500f, HeightScale = 1000f;
 
         public struct Item {
@@ -33,6 +35,8 @@ namespace CustomGenerator.Custom
         public float AutoRadius;
         public int UnknownPrefabs;
         public int BrokenPrefabs;
+
+        public bool HasMarker => Items.Any(x => x.Id == MonumentMarkerId);
 
         private float _size;
         private Vector3 _anchorPos;
@@ -500,14 +504,15 @@ namespace CustomGenerator.Custom
                     float angle = cfg.RandomRotation ? SeedRandom.Range(ref seed, 0f, 360f) : 0f;
 
                     Stamp(cfg, data, position, baseHeight, angle, radius);
-                    WritePrefabs(data, position, baseHeight, angle);
+                    WritePrefabs(data, position, baseHeight, angle, cfg.MapMarker ? name : null);
 
                     placed.Add(new Placed { Name = name, Position = position, Radius = radius });
                     tempData.customMonuments.Add(new KeyValuePair<string, Vector3>(name, position));
                     done++;
                     Logging.Generation($"Custom monument '{name}' #{done}: {position.x:0}, {position.z:0} (height {baseHeight:0.0}, rotation {angle:0})");
                 }
-                Logging.Generation($"Custom monument '{name}': placed {done}/{cfg.Count}, radius {radius:0}m, {data.Items.Count} prefabs each" + (data.IO.Count > 0 ? $", {data.IO.Count} IO entities each" : ""));
+                Logging.Generation($"Custom monument '{name}': placed {done}/{cfg.Count}, radius {radius:0}m, {data.Items.Count} prefabs each" + (data.IO.Count > 0 ? $", {data.IO.Count} IO entities each" : "")
+                    + (cfg.MapMarker && !data.HasMarker ? ", map marker added" : ""));
                 GenerationReport.CustomMonument(name, done, cfg.Count, done < cfg.Count ? "no room for the rest, see the log" : null);
             }
             MapExtrasWriter.Write(World.Serialization, MapExtrasWriter.GeneratedIO, "Custom monuments");
@@ -622,13 +627,18 @@ namespace CustomGenerator.Custom
             });
         }
 
-        private static void WritePrefabs(CustomMonumentData data, Vector3 center, float baseHeight, float angle) {
+        // The game map names a custom monument only through a monument marker, by its category. With a marker name the
+        // file's markers get it, and a file without one (RustEdit .prefab usually) gets a marker in the center.
+        private static void WritePrefabs(CustomMonumentData data, Vector3 center, float baseHeight, float angle, string markerName) {
             var rotation = Quaternion.Euler(0f, angle, 0f);
             foreach (var item in data.Items) {
                 Vector3 offset = rotation * new Vector3(item.Local.x, 0f, item.Local.z);
                 var position = new Vector3(center.x + offset.x, baseHeight + item.Local.y, center.z + offset.z);
-                World.Serialization.AddPrefab(item.Category, item.Id, position, rotation * item.Rotation, item.Scale);
+                string category = markerName != null && item.Id == CustomMonumentData.MonumentMarkerId ? markerName : item.Category;
+                World.Serialization.AddPrefab(category, item.Id, position, rotation * item.Rotation, item.Scale);
             }
+            if (markerName != null && !data.HasMarker)
+                World.Serialization.AddPrefab(markerName, CustomMonumentData.MonumentMarkerId, new Vector3(center.x, baseHeight, center.z), rotation, Vector3.one);
             // Same transform as the prefabs, so CustomGenerator.Server finds the spawned entities at these positions
             foreach (var io in data.IO) {
                 MapExtrasWriter.GeneratedIO.Add(MapExtrasWriter.Transform(io, local => {

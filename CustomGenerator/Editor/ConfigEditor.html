@@ -178,6 +178,20 @@ table.grid tr.zero td { color: var(--muted); }
 .stat small { display: block; color: var(--muted); font-size: 12px; }
 .stat b { font-size: 17px; font-variant-numeric: tabular-nums; }
 .stat.alert b { color: var(--bad); }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.gallery .card { margin: 0; display: flex; flex-direction: column; }
+.gallery .thumb { aspect-ratio: 1; background: var(--panel-2); display: block; overflow: hidden; border-bottom: 1px solid var(--line); }
+.gallery .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery .meta { padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.gallery .meta b { font-size: 14px; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.filters input { flex: 1; min-width: 200px; }
+.genbar { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; flex: 1; min-width: 120px; max-width: 320px; }
+.genbar span { display: block; height: 100%; background: var(--accent); transition: width .4s; }
+.biome-bar { display: flex; height: 12px; border-radius: 99px; overflow: hidden; border: 1px solid var(--line); margin-bottom: 8px; }
+.biome-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; }
+.biome-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.names.missing span { color: var(--muted); border-style: dashed; }
 .map-image { display: block; width: 100%; border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel-2); }
 .map-missing { padding: 40px; text-align: center; color: var(--muted); }
 pre.report { margin: 0; padding: 14px 18px; overflow: auto; font: 12px/1.5 var(--mono); }
@@ -245,7 +259,7 @@ const LANG_KEY = "Language (en/ru)";
 const MASTER_KEYS = ["Enabled", "ShouldChange", "Включить"];
 // Served by CustomGeneratorLauncher: config, generation and files go through its API
 const API = location.protocol.startsWith("http");
-const TAB_GENERATE = "@generate", TAB_LAST = "@last";
+const TAB_GENERATE = "@generate", TAB_LAST = "@last", TAB_MAPS = "@maps";
 const SIZES = [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 6000];
 const COLORS = { Arid: "#e0b46c", Temperate: "#8cc084", Tundra: "#a6b8a8", Arctic: "#cfe3f2", Jungle: "#5f9e6e", Tier0: "#9fd08a", Tier1: "#f0cf65", Tier2: "#e27d6b" };
 const FALLBACK_COLORS = ["#e0b46c", "#8cc084", "#a6b8a8", "#cfe3f2", "#c3a6d8", "#f0cf65"];
@@ -284,11 +298,21 @@ const UI = {
     monuments: "Monuments", group: "Group", placed: "Placed", prefabs: "Prefabs", custom: "Custom monuments", swap: "Swap",
     fullReport: "Full report", openImage: "Open full size", noImage: "No preview for this run (Map Image is off or failed).", openLog: "Open log",
     swapSavedTo: "Swapped map: {0}",
+    world: "World", land: "Land", islands: "Islands", rivers: "Rivers", roads: "Roads", rails: "Rails", powerlines: "Powerlines", biomes: "Biomes",
+    notPlaced: "not placed:",
+    worldNames: {},
     // generate
     generate: "Generate", genTitle: "Generate maps", genLead: "Each map is a separate server run: the mod generates the map, saves it with the preview and report, and the server quits.",
     maps: "Maps", addMap: "Add map", random: "Random seed", randomMany: "+5 random seeds", extraArgs: "Extra server arguments",
     start: "Save & generate", startNoSave: "Generate", stop: "Stop", running: "Generating {0} / {1}", elapsed: "{0}", queued: n => `${n} more in queue`,
     step: "Step: {0}", idle: "Not running", doneRuns: "Finished runs", exitCode: "exit code {0}", stopped: "stopped", ok: "done",
+    attempt: "attempt {0}", rerolled: "requirements not met, another seed",
+    mapsTab: "Maps", mapsTitle: "Generated maps", mapsLead: "Every map in maps/ with what's on it. Filter by size and the monuments it must have.",
+    mapsNoApi: "The map list needs the launcher: open the editor through CustomGeneratorLauncher.exe.", mapsEmpty: "No maps match.",
+    allSizes: "All sizes", sizeSmall: "Small (up to 2500)", sizeMedium: "Medium (3000-4000)", sizeLarge: "Large (4500+)",
+    mustHave: "Must have (comma separated, part of a name)", report: "Report", noSummary: "Generated before map summaries, only the file is known.",
+    monumentsCount: "monuments", progress: "{0} of {1} steps",
+    requirements: "Map requirements", reqMet: "met", reqNotMet: "not met", reqReroll: "not met, generating again", reqMissing: "Missing:",
     onlyMod: "Only mod and generation lines", mapReady: "Map {0} / {1} is ready", genStarted: "Generation started",
     noLauncher: "Maps are generated through <b>CustomGeneratorLauncher.exe</b>: double-click it in the mod's folder and set your Rust server folder on this tab, this editor opens with a Generate button. Or install the mod into the server by hand and run these commands in the server folder:",
     copy: "Copy", copied: "Copied", noRust: "RustDedicated wasn't found in the server folder the launcher is in. Start the launcher from its own folder to choose a server, or pass --root <server folder>.",
@@ -327,12 +351,25 @@ const UI = {
     lastRun: "Последний запуск", noRun: "Генераций ещё не было. Запустите на вкладке «Генерация» или запустите сервер с модом.",
     size: "Размер", seed: "Сид", duration: "Время", warnings: "Предупреждения", errorsTitle: "Ошибки", finished: "Завершено {0}",
     monuments: "Монументы", group: "Группа", placed: "Поставлено", prefabs: "Префабы", custom: "Кастомные монументы", swap: "Свап",
+    world: "Мир", land: "Суша", islands: "Острова", rivers: "Реки", roads: "Дороги", rails: "Рельсы", powerlines: "ЛЭП", biomes: "Биомы",
+    notPlaced: "не попали:",
+    worldNames: { "Large monuments": "Большие монументы", "Small monuments": "Малые монументы", "Tiny monuments": "Крошечные монументы",
+      "Custom monuments": "Кастомные монументы", "Safe zones": "Безопасные зоны", Caves: "Пещеры", Mountains: "Горы", Lakes: "Озёра",
+      "Ice lakes": "Ледяные озёра", Swamps: "Болота", Oases: "Оазисы", Canyons: "Каньоны", "Jungle environments": "Уникальные места джунглей",
+      Icebergs: "Айсберги", Arid: "Пустыня", Temperate: "Умеренный", Tundra: "Тундра", Arctic: "Арктика", Jungle: "Джунгли" },
     fullReport: "Полный отчёт", openImage: "Открыть в полном размере", noImage: "Для этого запуска нет превью (Map Image выключен или упал).", openLog: "Открыть лог",
     swapSavedTo: "Карта со свапом: {0}",
     generate: "Генерация", genTitle: "Генерация карт", genLead: "Каждая карта — отдельный запуск сервера: мод генерирует карту, сохраняет её с превью и отчётом, и сервер закрывается.",
     maps: "Карты", addMap: "Добавить карту", random: "Случайный сид", randomMany: "+5 случайных сидов", extraArgs: "Доп. аргументы сервера",
     start: "Сохранить и сгенерировать", startNoSave: "Сгенерировать", stop: "Остановить", running: "Генерируется {0} / {1}", elapsed: "{0}", queued: n => `В очереди ещё: ${n}`,
     step: "Шаг: {0}", idle: "Не запущено", doneRuns: "Завершённые запуски", exitCode: "код выхода {0}", stopped: "остановлено", ok: "готово",
+    attempt: "попытка {0}", rerolled: "требования не выполнены, другой сид",
+    mapsTab: "Карты", mapsTitle: "Сгенерированные карты", mapsLead: "Все карты из maps/ и что на них есть. Фильтр по размеру и монументам, которые должны быть.",
+    mapsNoApi: "Списку карт нужен лаунчер: откройте редактор через CustomGeneratorLauncher.exe.", mapsEmpty: "Подходящих карт нет.",
+    allSizes: "Все размеры", sizeSmall: "Маленькие (до 2500)", sizeMedium: "Средние (3000-4000)", sizeLarge: "Большие (4500+)",
+    mustHave: "Должны быть (через запятую, часть имени)", report: "Отчёт", noSummary: "Сгенерирована до итогов карт, известен только файл.",
+    monumentsCount: "монументов", progress: "{0} из {1} шагов",
+    requirements: "Требования к карте", reqMet: "выполнены", reqNotMet: "не выполнены", reqReroll: "не выполнены, генерируется заново", reqMissing: "Не хватает:",
     onlyMod: "Только строки мода и генерации", mapReady: "Карта {0} / {1} готова", genStarted: "Генерация запущена",
     noLauncher: "Карты генерируются через <b>CustomGeneratorLauncher.exe</b>: запустите его двойным щелчком в папке мода и укажите на этой вкладке папку сервера Rust — откроется этот редактор с кнопкой генерации. Или поставьте мод в сервер вручную и выполните эти команды в папке сервера:",
     copy: "Копировать", copied: "Скопировано", noRust: "RustDedicated не найден в папке сервера, где лежит лаунчер. Запустите лаунчер из его собственной папки, чтобы выбрать сервер, или передайте --root <папка сервера>.",
@@ -354,6 +391,14 @@ const PRESETS = [
       c.set("Generator.Rail", { ShouldChange: true, Enabled: true, GenerateRing: true, GenerateSideMonuments: true, GenerateSideObjects: false });
       c.set("Generator.RemoveRivers", true);
     } },
+  { title: { en: "Many rivers, more icebergs and ores", ru: "Много рек, больше айсбергов и руды" },
+    desc: { en: "Up to 8 rivers 300 m apart, icebergs x3, ore nodes x2.", ru: "До 8 рек на расстоянии 300 м, айсберги x3, руда x2." },
+    apply: c => {
+      c.set("Generator.RemoveRivers", false);
+      c.set("Generator.MaxRivers", 8);
+      c.set("Generator.RiverSpacing", 300);
+      c.set("Generator.DecorDensity", { "decor/iceberg": 3, "resource/ores": 2 });
+    } },
   { title: { en: "More snow, less desert", ru: "Больше снега, меньше пустыни" },
     desc: { en: "Arid 15, Temperate 25, Tundra 20, Arctic 40, Jungle 30.", ru: "Пустыня 15, умеренный 25, тундра 20, арктика 40, джунгли 30." },
     apply: c => {
@@ -366,6 +411,14 @@ const PRESETS = [
   { title: { en: "One fishing village of type C", ru: "Одна рыбацкая деревня типа C" },
     desc: { en: "Fishing villages group: only fishing_village_c, one on the map.", ru: "Группа деревень: только fishing_village_c, одна на карте." },
     apply: c => c.group("monument/fishing_village", { ShouldChange: true, Generate: true, TargetCount: 1, IncludePrefabs: ["fishing_village_c"] }) },
+  { title: { en: "More oil rigs: 2 large, 3 small", ru: "Больше нефтевышек: 2 большие, 3 малые" },
+    desc: { en: "Offshore group: oilrig_1 (large) x2, oilrig_2 (small) x3, at least 700 m apart, on any map size.",
+            ru: "Офшорная группа: oilrig_1 (большая) x2, oilrig_2 (малая) x3, не ближе 700 м друг к другу, на любом размере." },
+    apply: c => c.group("monument/offshore", { ShouldChange: true, Generate: true, TargetCount: 5, MinWorldSize: 0, MinDistanceSameType: 700, PrefabCopies: { oilrig_1: 2, oilrig_2: 3 } }) },
+  { title: { en: "Roadside: 3 gas stations, 3 supermarkets", ru: "У дорог: 3 заправки, 3 супермаркета" },
+    desc: { en: "Road group: gas stations and supermarkets only. The game needs room along roads, small maps get fewer.",
+            ru: "Группа у дорог: только заправки и супермаркеты. Игре нужно место вдоль дорог, на маленьких картах встанет меньше." },
+    apply: c => c.group("monument/roadside", { ShouldChange: true, Generate: true, TargetCount: 6, MinDistanceSameType: 300, PrefabCopies: { gas_station: 3, supermarket: 3, warehouse: 0, radtown: 0 } }) },
   { title: { en: "No lighthouses", ru: "Без маяков" },
     desc: { en: "The lighthouse group isn't generated.", ru: "Группа маяков не генерируется." },
     apply: c => c.group("monument/lighthouse", { ShouldChange: true, Generate: false }) },
@@ -375,6 +428,31 @@ const PRESETS = [
   { title: { en: "Clean roads", ru: "Чистые дороги" },
     desc: { en: "No car wrecks along roads, building on roads allowed.", ru: "Без обломков машин у дорог, строить на дорогах можно." },
     apply: c => { c.set("Generator.RemoveCarWrecks", true); c.set("Generator.AllowRoadBuild", true); } },
+  { title: { en: "Continent", ru: "Континент" },
+    desc: { en: "More land: terrain raised 12 m, wide flat beaches, no salt lakes inside the land.",
+            ru: "Больше суши: рельеф поднят на 12 м, широкие плоские пляжи, без солёных озёр внутри суши." },
+    apply: c => c.set("Generator.LandShape", { LandLevel: 12, MountainHeight: 1, BeachHeight: 8, ShelfDepth: 0, FillInlandSea: true }) },
+  { title: { en: "Archipelago", ru: "Архипелаг" },
+    desc: { en: "Less land split into more islands: terrain lowered 10 m, lower mountains, wide shallow water between islands.",
+            ru: "Меньше суши и больше островов: рельеф опущен на 10 м, горы ниже, широкое мелководье между островами." },
+    apply: c => c.set("Generator.LandShape", { LandLevel: -10, MountainHeight: 0.8, BeachHeight: 5, ShelfDepth: 12, FillInlandSea: false }) },
+  { title: { en: "Volcano", ru: "Вулкан" },
+    desc: { en: "A 220 m volcano with a crater and bare rock slopes in the middle of the biggest landmass.",
+            ru: "Вулкан 220 м с кратером и голыми скалистыми склонами в середине самого большого участка суши." },
+    apply: c => c.set("Generator.LandShape", { VolcanoHeight: 220, VolcanoRadius: 500 }) },
+  { title: { en: "Barren", ru: "Пустошь" },
+    desc: { en: "No grass, decor rocks, cliffs, icebergs, caves, ice lakes, swamps, rivers, powerlines, tunnels or rail ring.",
+            ru: "Без травы, декоративных камней, скал, айсбергов, пещер, ледяных озёр, болот, рек, ЛЭП, туннелей и ЖД-кольца." },
+    apply: c => {
+      c.set("Generator.RemoveGrass", true);
+      c.set("Generator.BlockedPrefabs", ["autospawn/decor/"]);
+      c.set("Generator.RemoveRivers", true);
+      c.set("Generator.RemovePowerlines", true);
+      c.set("Generator.RemoveTunnels", true);
+      c.set("Generator.Rail", { ShouldChange: true, Enabled: false, GenerateRing: false, GenerateSideMonuments: false, GenerateSideObjects: false });
+      // Groups, not blocked prefabs: a group that isn't generated doesn't touch the terrain either
+      for (const folder of ["monument/cave", "monument/ice_lakes", "monument/swamp"]) c.group(folder, { ShouldChange: true, Generate: false });
+    } },
   { title: { en: "Quick preview", ru: "Быстрое превью" },
     desc: { en: "Smaller preview image: scale 0.5, ocean margin 100, still with grid and names.", ru: "Картинка поменьше: масштаб 0.5, отступ океана 100, с сеткой и подписями." },
     apply: c => c.set("MapImage", { Enabled: true, Scale: 0.5, OceanMargin: 100 }) },
@@ -526,7 +604,7 @@ function fieldRow(key, node, obj, onChange, ctx) {
   };
   const set = value => { obj[key] = value; refresh(); changed(); onChange && onChange(value); };
   const suggest = node["x-suggest"];
-  const knownPrefabs = suggest === "prefabs" ? (S.extra.prefabs?.[ctx?.folder] || []) : null;
+  const knownPrefabs = suggest === "prefabs" ? (S.extra.prefabs?.[ctx?.folder] || []) : suggest === "monuments" ? knownMonuments() : null;
 
   let input;
   if (node.type === "boolean") {
@@ -902,7 +980,7 @@ function render() {
   const nav = h("nav", { id: "nav" });
   const main = h("main", { id: "main" });
   app.replaceChildren(top, h("div", { class: "layout" }, nav, main));
-  const valid = [TAB_GENERATE, TAB_LAST, ...sections().map(([k]) => k)];
+  const valid = [TAB_GENERATE, TAB_LAST, TAB_MAPS, ...sections().map(([k]) => k)];
   if (!valid.includes(S.section)) S.section = hasConfig ? sections()[0][0] : TAB_GENERATE;
   drawNav(); drawSection(); updateTop();
 }
@@ -915,6 +993,7 @@ function drawNav() {
   fill(nav,
     tab(TAB_GENERATE, "▶ " + t("generate"), genState),
     tab(TAB_LAST, t("lastRun"), S.extra.lastRun ? h("span", { class: "state" }, S.extra.lastRun.size) : null),
+    tab(TAB_MAPS, t("mapsTab"), null),
     sections().length ? h("div", { class: "sep" }) : null,
     ...sections().map(([key, node]) => {
       const master = masterKey(node, S.config[key]);
@@ -936,6 +1015,7 @@ function drawSection() {
   const main = document.getElementById("main");
   if (S.section === TAB_GENERATE) return main.replaceChildren(...generateView());
   if (S.section === TAB_LAST) return main.replaceChildren(...lastRunView());
+  if (S.section === TAB_MAPS) return main.replaceChildren(...mapsView());
   const key = S.section, node = S.schema.properties[key];
   if (typeof S.config[key] !== "object" || S.config[key] === null) S.config[key] = defaultsFor(node);
   const content = [h("h1", {}, key)];
@@ -980,6 +1060,13 @@ function lastRunView() {
       h("div", { class: "body" }, h("a", { href: src, target: "_blank", rel: "noopener" }, img)));
   } else imageCard.append(h("div", { class: "map-missing" }, t("noImage")));
   out.push(imageCard);
+  const req = run.requirements;
+  if (req) out.push(h("section", { class: "card" }, h("div", { class: "head" }, h("h3", {}, t("requirements")),
+      h("span", { class: "badge " + (req.met ? "on" : req.reroll ? "warn" : "alert") }, t(req.met ? "reqMet" : req.reroll ? "reqReroll" : "reqNotMet")),
+      h("span", { class: "badge" }, `${req.attempt} / ${req.maxAttempts}`)),
+    req.missing?.length ? h("div", { class: "body" }, h("div", { class: "names" }, h("small", { style: "color:var(--muted)" }, t("reqMissing")),
+      req.missing.map(m => h("span", {}, m.need > 1 ? `${m.name} ${m.have}/${m.need}` : m.name)))) : null));
+  if (run.world) out.push(worldCard(run.world));
 
   if (run.groups?.length) {
     out.push(h("section", { class: "card" }, h("div", { class: "head" }, h("h3", {}, t("monuments"))),
@@ -989,7 +1076,8 @@ function lastRunView() {
           const counts = {};
           for (const p of g.prefabs) counts[p] = (counts[p] || 0) + 1;
           return h("tr", { class: g.prefabs.length ? "" : "zero" }, h("td", {}, g.name), h("td", { class: "num" }, g.target >= 0 ? `${g.prefabs.length} / ${g.target}` : g.prefabs.length),
-            h("td", {}, h("div", { class: "names" }, Object.entries(counts).map(([n, c]) => h("span", {}, c > 1 ? `${n} ×${c}` : n)))));
+            h("td", {}, h("div", { class: "names" }, Object.entries(counts).map(([n, c]) => h("span", {}, c > 1 ? `${n} ×${c}` : n))),
+              g.missing?.length ? h("div", { class: "names missing", style: "margin-top:4px" }, h("small", { style: "color:var(--muted)" }, t("notPlaced")), g.missing.map(n => h("span", {}, n))) : null));
         })))));
   }
   if (run.custom?.length) {
@@ -1007,6 +1095,80 @@ function lastRunView() {
     h("summary", { style: "padding:12px 18px; cursor:pointer; font-weight:600" }, t("fullReport"), log ? h("a", { href: log, target: "_blank", rel: "noopener", style: "margin-left:14px; font-weight:400" }, t("openLog")) : null),
     h("pre", { class: "report" }, run.text || ""))));
   return out;
+}
+
+// Monument kinds for "Map Requirements": prefab names of the monument groups without variant suffixes, plus custom monument names
+const NATURE = /cave|unique_environment|tunnel|swamp|ice_lake|mountain|tiny/;
+function knownMonuments() {
+  const names = new Set();
+  for (const [folder, list] of Object.entries(S.extra.prefabs || {})) if (!NATURE.test(folder)) for (const n of list) names.add(n.replace(/_(?:[a-z]|\d+)$/, ""));
+  for (const n of Object.keys(S.extra.lastRun?.world?.monuments || {})) if (!/^(cave|water_well|ice_lake|swamp)/.test(n)) names.add(n.replace(/_(?:[a-z]|\d+)$/, ""));
+  // The custom monuments list is the only one whose items have "File" (section keys are in the config's language)
+  const custom = Object.values(S.config || {}).flatMap(v => v && typeof v === "object" ? Object.values(v) : [])
+    .filter(v => Array.isArray(v) && v.some(x => x && typeof x === "object" && "File" in x)).flat();
+  for (const c of custom) if (c?.Name || c?.File) names.add(c.Name || String(c.File).replace(/\.(map|prefab)$/i, ""));
+  return [...names].sort();
+}
+
+const BIOME_COLORS = { Arid: "#d9b56f", Temperate: "#7fa650", Tundra: "#9a8f5e", Arctic: "#c9dde6", Jungle: "#2f7a4a" };
+const worldName = key => (UI[S.lang] || UI.en).worldNames?.[key] || key;
+
+function worldCard(w) {
+  const pct = v => `${Math.round(v)}%`;
+  const stats = [[t("land"), pct(w.land)], [t("islands"), w.islands], [t("rivers"), w.rivers], [t("roads"), w.roads], [t("rails"), w.rails], [t("powerlines"), w.powerlines],
+    ...Object.entries(w.counts || {}).filter(([, v]) => v > 0).map(([k, v]) => [worldName(k), v])];
+  const biomes = Object.entries(w.biomes || {});
+  const body = h("div", { class: "body" }, h("div", { class: "stats" }, stats.map(([k, v]) => h("div", { class: "stat" }, h("small", {}, k), h("b", {}, v)))));
+  if (biomes.length) body.append(h("small", { style: "display:block; color:var(--muted); margin-bottom:6px" }, t("biomes")),
+    h("div", { class: "biome-bar" }, biomes.map(([k, v]) => h("span", { style: `width:${v}%; background:${BIOME_COLORS[k] || "#888"}`, title: `${worldName(k)} ${v}%` }))),
+    h("div", { class: "biome-legend" }, biomes.map(([k, v]) => h("span", {}, h("i", { style: `background:${BIOME_COLORS[k] || "#888"}` }), `${worldName(k)} ${v.toFixed(1)}%`))));
+  return h("section", { class: "card" }, h("div", { class: "head" }, h("h3", {}, t("world"))), body);
+}
+
+/* ---------- maps ---------- */
+const mapsState = { list: null, size: store.get("mapsSize", ""), must: store.get("mapsMust", "") };
+
+function mapsView() {
+  const out = [h("h1", {}, t("mapsTitle")), h("p", { class: "lead" }, t("mapsLead"))];
+  if (!API) { out.push(h("p", { class: "lead" }, t("mapsNoApi"))); return out; }
+  const grid = h("div", { class: "gallery" });
+  const draw = () => {
+    const must = mapsState.must.split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
+    const sizeOk = size => !mapsState.size || (mapsState.size === "s" ? size <= 2500 : mapsState.size === "m" ? size >= 3000 && size <= 4000 : size >= 4500);
+    const items = (mapsState.list || []).filter(m => {
+      const size = m.summary?.size ?? Number((m.file.match(/(\d{4})_\d+\.map$/) || [])[1] || 0);
+      if (!sizeOk(size)) return false;
+      const names = Object.keys(m.summary?.world?.monuments || {}).map(x => x.toLowerCase());
+      return must.every(x => names.some(n => n.includes(x)));
+    });
+    fill(grid, ...(items.length ? items.map(mapCard) : [h("p", { class: "lead" }, mapsState.list ? t("mapsEmpty") : "…")]));
+  };
+  const save = () => { store.set("mapsSize", mapsState.size); store.set("mapsMust", mapsState.must); draw(); };
+  out.push(h("div", { class: "filters" },
+    h("select", { "aria-label": t("size"), onchange: e => { mapsState.size = e.target.value; save(); } },
+      [["", t("allSizes")], ["s", t("sizeSmall")], ["m", t("sizeMedium")], ["l", t("sizeLarge")]].map(([v, l]) => h("option", { value: v, selected: v === mapsState.size }, l))),
+    h("input", { type: "text", value: mapsState.must, placeholder: t("mustHave"), "aria-label": t("mustHave"), spellcheck: false,
+      oninput: e => { mapsState.must = e.target.value; save(); } })), grid);
+  draw();
+  api("GET", "/api/maps").then(list => { mapsState.list = list || []; draw(); }).catch(() => { mapsState.list = []; draw(); });
+  return out;
+}
+
+function mapCard(m) {
+  const s = m.summary, w = s?.world;
+  const image = fileUrl(m.image), report = fileUrl(m.report);
+  const monuments = w ? Object.values(w.monuments || {}).reduce((a, b) => a + b, 0) : null;
+  const req = s?.requirements;
+  return h("section", { class: "card" },
+    image ? h("a", { class: "thumb", href: image, target: "_blank", rel: "noopener" }, h("img", { src: image, alt: m.file, loading: "lazy" })) : h("div", { class: "thumb" }),
+    h("div", { class: "meta" },
+      h("b", {}, s ? `${s.size} / ${s.seed}` : m.file),
+      h("span", { style: "color:var(--muted)" }, `${m.modified} · ${m.mb} MB`),
+      w ? h("span", {}, `${t("land")} ${Math.round(w.land)}% · ${t("islands")} ${w.islands} · ${t("rivers")} ${w.rivers} · ${monuments} ${t("monumentsCount")}`)
+        : h("span", { style: "color:var(--muted)" }, t("noSummary")),
+      req ? h("span", {}, h("span", { class: "badge " + (req.met ? "on" : "alert") }, t(req.met ? "reqMet" : "reqNotMet")),
+        req.missing?.length ? " " + req.missing.map(x => x.name).join(", ") : "") : null,
+      h("span", {}, report ? h("a", { href: report, target: "_blank", rel: "noopener" }, t("report")) : null)));
 }
 
 /* ---------- generate ---------- */
@@ -1105,6 +1267,9 @@ function updateGeneration() {
     const step = running ? currentStep(g.log || []) : null;
     fill(status, ...(running
       ? [h("span", { class: "spinner" }), h("b", {}, t("running", g.current.size, g.current.seed)), h("span", { class: "badge" }, duration(g.current.seconds)),
+         g.current.attempt > 1 ? h("span", { class: "badge warn" }, t("attempt", g.current.attempt)) : null,
+         g.progress?.total ? h("div", { class: "genbar", title: t("progress", g.progress.done, g.progress.total) },
+           h("span", { style: `width:${Math.min(100, Math.round(100 * g.progress.done / g.progress.total))}%` })) : null,
          step ? h("span", { class: "hint", style: "margin:0" }, t("step", step)) : null, g.queued?.length ? h("span", { class: "badge" }, t("queued", g.queued.length)) : null]
       : [h("span", { class: "hint", style: "margin:0" }, t("idle"))]));
     document.querySelector("#main .btn.primary")?.toggleAttribute("disabled", !!g.running || !S.extra.rustFound);
@@ -1121,7 +1286,9 @@ function updateGeneration() {
   if (done) {
     done.replaceChildren(...(g.done?.length ? [h("section", { class: "card" }, h("div", { class: "head" }, h("h3", {}, t("doneRuns"))),
       h("table", { class: "grid" }, h("tbody", {}, g.done.map(d => h("tr", {}, h("td", {}, `${d.size} / ${d.seed}`), h("td", { class: "num" }, duration(d.seconds)),
-        h("td", {}, d.stopped ? h("span", { class: "badge warn" }, t("stopped")) : d.exitCode === 0 ? h("span", { class: "badge on" }, t("ok")) : h("span", { class: "badge alert" }, t("exitCode", d.exitCode))))))))] : []));
+        h("td", {}, d.stopped ? h("span", { class: "badge warn" }, t("stopped")) : d.rerolled ? h("span", { class: "badge warn" }, t("rerolled"))
+          : d.exitCode === 0 ? h("span", { class: "badge on" }, t("ok")) : h("span", { class: "badge alert" }, t("exitCode", d.exitCode)),
+          d.attempt > 1 ? h("span", { class: "badge", style: "margin-left:6px" }, t("attempt", d.attempt)) : null))))))] : []));
   }
 }
 
@@ -1131,7 +1298,7 @@ function currentStep(lines) {
     const m = /^\[\d+(?:\.\d+)?s\]\s+(.+)$/.exec(lines[i]);
     if (m) return m[1];
     const c = /^\[CGen[^\]]*\]\s+(.+)$/.exec(lines[i]);
-    if (c) return c[1].slice(0, 80);
+    if (c) return c[1].replace(/^Step: /, "").slice(0, 80);
   }
   return null;
 }

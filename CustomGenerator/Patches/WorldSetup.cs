@@ -32,16 +32,26 @@ namespace CustomGenerator.Patches {
         private static void Prefix(ref string strType) {
             if (tempData.terrainTexturing == null || strType != "DONE")  return;
             Logging.Info($"SIZE: {tempData.mapsize} | SEED: {tempData.mapseed}");
+            // Same getters the game saved the map with, so the path is right with Override Folder/Name on or off
+            string mapPath = Path.Combine(World.MapFolderName, World.MapFileName);
+
+            var requirements = MapRequirements.Check(GenerationReport.Summary);
+            GenerationReport.Requirements(requirements);
+            if (requirements != null && requirements.Reroll) {
+                // Only the last run data and the log: the launcher starts the next attempt right away
+                GenerationReport.Write(mapPath, rejected: true);
+                try { File.Delete(mapPath); } catch (Exception ex) { Logging.Error($"Can't delete the rejected map {mapPath}", ex); }
+                Application.Quit(MapRequirements.RerollExitCode);
+                return;
+            }
 
             if (Config.Swap.Enabled) {
-                // Same getters the game saved the map with, so the path is right with Override Folder/Name on or off
-                string path = Path.Combine(World.MapFolderName, World.MapFileName);
-                if (File.Exists(path)) SwapMonument.Initiate(path);
-                else Logging.Error($"Swap: saved map not found at {path}, swap skipped");
+                if (File.Exists(mapPath)) SwapMonument.Initiate(mapPath);
+                else Logging.Error($"Swap: saved map not found at {mapPath}, swap skipped");
             }
 
             MapImage.RenderMap();
-            GenerationReport.Write(Path.Combine(World.MapFolderName, World.MapFileName));
+            GenerationReport.Write(mapPath);
             
             //Rust.Application.Quit();
             Application.Quit();

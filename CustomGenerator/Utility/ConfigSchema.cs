@@ -25,7 +25,7 @@ namespace CustomGenerator.Utility
         public bool Addable;        // list of objects: the user may add and remove items
         public double SumTo = double.NaN;
         public string SumFields;    // with SumTo: comma separated fields that must add up, empty = all
-        public string Suggest;      // editor suggestions from the last run: "prefabs" (group prefab names), "customFiles"
+        public string Suggest;      // editor suggestions from the last run: "prefabs" (group prefab names), "monuments" (monument kinds), "customFiles"
     }
 
     // Builds a JSON Schema (draft-07) of the config, so editors show descriptions, autocomplete keys and values
