@@ -226,8 +226,25 @@ namespace CustomGenerator.Launcher
                     ["queued"] = _queue.Select(x => new Dictionary<string, object> { ["size"] = x.Size, ["seed"] = x.Seed }).ToArray(),
                     ["done"] = _done.ToArray(),
                     ["log"] = Tail(_log, 400),
+                    ["progress"] = _process == null ? null : Progress(_log),
                 };
             }
+        }
+
+        // Steps done out of the total the mod logs at the start ("Generation steps: N"); each step prints "[CGen] Step: Name" as it starts
+        private static readonly System.Text.RegularExpressions.Regex StepLine = new System.Text.RegularExpressions.Regex(@"\[CGen\] Step: ");
+        private static readonly System.Text.RegularExpressions.Regex TotalLine = new System.Text.RegularExpressions.Regex(@"Generation steps: (\d+)");
+
+        private static Dictionary<string, object> Progress(string path) {
+            if (path == null || !File.Exists(path)) return null;
+            try {
+                string text;
+                using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                using (var reader = new StreamReader(file, Encoding.UTF8)) text = reader.ReadToEnd();
+                var total = TotalLine.Match(text);
+                if (!total.Success) return null;
+                return new Dictionary<string, object> { ["done"] = Math.Min(StepLine.Matches(text).Count, int.Parse(total.Groups[1].Value)), ["total"] = int.Parse(total.Groups[1].Value) };
+            } catch { return null; }
         }
 
         // Last lines of the server log, which RustDedicated keeps open for writing

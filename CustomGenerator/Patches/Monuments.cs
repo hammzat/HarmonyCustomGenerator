@@ -242,6 +242,8 @@ namespace CustomGenerator.Generators
             // Runs every time (even with Monuments disabled), so the list is ready to edit after the first run
             PlaceMonuments[] placeMonuments = SingletonComponent<WorldSetup>.Instance.GetComponentsInChildren<ProceduralComponent>(true).OfType<PlaceMonuments>().ToArray();
             Logging.Info($"Found {placeMonuments.Length} monument groups");
+            // For the launcher's progress bar, see StepProgress
+            Logging.Info($"Generation steps: {Patches.StepProgress.Total()}");
             var found = new List<ExtConfig.Monument>();
             foreach (var mon in placeMonuments) {
                 found.Add(new ExtConfig.Monument { 

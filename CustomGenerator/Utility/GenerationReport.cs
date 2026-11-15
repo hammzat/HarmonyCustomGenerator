@@ -93,7 +93,14 @@ namespace CustomGenerator.Utility
             }
 
             try {
-                File.WriteAllText(LastRunLocation, BuildJson(mapPath, elapsed, report).ToString(Formatting.Indented));
+                var json = BuildJson(mapPath, elapsed, report);
+                File.WriteAllText(LastRunLocation, json.ToString(Formatting.Indented));
+                // Next to the map for the editor's map gallery: the last run data without the long parts
+                if (!rejected) {
+                    var summary = (JObject)json.DeepClone();
+                    foreach (var key in new[] { "text", "groups", "swapFiles", "log" }) summary.Remove(key);
+                    File.WriteAllText(Path.ChangeExtension(Path.GetFullPath(mapPath), ".summary.json"), summary.ToString(Formatting.None));
+                }
                 SavePrefabNames();
                 ConfigEditor.Refresh();
             } catch (Exception ex) {

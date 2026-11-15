@@ -87,6 +87,8 @@ namespace CustomGenerator.Launcher
                     return new Response(200, "text/html; charset=utf-8", Utf8.GetBytes(Editor()));
                 case "GET /api/state":
                     return Response.RawJson(State(request.Query("custom")));
+                case "GET /api/maps":
+                    return Response.RawJson(Maps());
                 case "GET /api/files":
                     return Response.RawJson(Json.Serialize(Files(request.Query("custom"))));
                 case "PUT /api/config":
@@ -127,6 +129,23 @@ namespace CustomGenerator.Launcher
                 ["workspace"] = _generator.Workspace, ["root"] = Root, ["server"] = _generator.ServerDir,
             }));
             return json.Append('}').ToString();
+        }
+
+        // Generated maps for the editor's gallery, newest first: the summary the mod wrote next to each map, raw
+        private static string Maps() {
+            string folder = Path.Combine(Root, "maps");
+            if (!Directory.Exists(folder)) return "[]";
+            var items = new List<string>();
+            foreach (var map in new DirectoryInfo(folder).GetFiles("*.map").OrderByDescending(x => x.LastWriteTimeUtc)) {
+                string name = Path.GetFileNameWithoutExtension(map.Name);
+                string image = File.Exists(Path.Combine(Root, "mapimages", name + ".png")) ? "mapimages/" + name + ".png" : null;
+                string report = File.Exists(Path.ChangeExtension(map.FullName, ".report.txt")) ? "maps/" + name + ".report.txt" : null;
+                items.Add("{\"file\":" + Json.Serialize(map.Name) + ",\"image\":" + Json.Serialize(image) + ",\"report\":" + Json.Serialize(report)
+                    + ",\"mb\":" + (map.Length / 1048576.0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)
+                    + ",\"modified\":" + Json.Serialize(map.LastWriteTime.ToString("yyyy-MM-dd HH:mm"))
+                    + ",\"summary\":" + ReadJson(Path.ChangeExtension(map.FullName, ".summary.json")) + "}");
+            }
+            return "[" + string.Join(",", items) + "]";
         }
 
         private static string ReadJson(string path) {
