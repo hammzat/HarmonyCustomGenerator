@@ -17,7 +17,7 @@ namespace CustomGenerator.Patches
 
         private static void Postfix() {
             var s = Config.Generator.LandShape;
-            if (s == null || !s.Changes) return;
+            if (s == null || !s.HasChanges()) return;
 
             var map = TerrainMeta.HeightMap;
             var heights = Dst(map);

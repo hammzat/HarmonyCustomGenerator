@@ -410,7 +410,7 @@ namespace CustomGenerator
             [Schema(Min = 100, Max = 1500)]
             public float VolcanoRadius = 450f;
 
-            public bool Changes => LandLevel != 0f || MountainHeight != 1f || BeachHeight > 0f || ShelfDepth > 0f || FillInlandSea || VolcanoHeight > 0f;
+            public bool HasChanges() => LandLevel != 0f || MountainHeight != 1f || BeachHeight > 0f || ShelfDepth > 0f || FillInlandSea || VolcanoHeight > 0f;
         }
 
         public sealed class TierSettings {
