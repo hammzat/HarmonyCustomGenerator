@@ -56,7 +56,7 @@ a { color: var(--accent); }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
 
 /* Layout */
-.layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: calc(100% - 55px); }
+.layout { display: grid; grid-template-columns: 256px minmax(0, 1fr); min-height: calc(100% - 55px); }
 nav { border-right: 1px solid var(--line); padding: 16px 10px; position: sticky; top: 55px; align-self: start; height: calc(100vh - 55px); overflow: auto; }
 nav button { display: flex; width: 100%; align-items: center; gap: 8px; text-align: left; border: 0; background: none;
   padding: 8px 12px; border-radius: 8px; cursor: pointer; color: var(--text); }
@@ -264,11 +264,71 @@ pre.log .err { color: #ff8a80; }
   .toc a { display: block; color: var(--muted); text-decoration: none; padding: 4px 0; line-height: 1.3; }
   .toc a:hover, .toc a.on { color: var(--accent); }
 }
-main h1 { letter-spacing: -.01em; }
 .card, .row { scroll-margin-top: 72px; }
-.card { transition: box-shadow .15s; }
-.card > .head { background: linear-gradient(var(--panel-2), var(--panel)); border-radius: var(--radius) var(--radius) 0 0; }
-.logo { background: linear-gradient(135deg, var(--accent), #8f3a2a); }
+
+/* ===== Calm look: palette, type, quieter cards ===== */
+:root {
+  --bg: #f6f5f3; --panel: #ffffff; --panel-2: #f8f7f5; --line: #ebe8e4; --text: #1d1b19; --muted: #7d776f;
+  --accent: #e4572e; --accent-soft: #fdece6; --ok: #2f8a4c; --ok-soft: #e3f3e8; --focus: #e4572e55;
+  --shadow: 0 1px 2px #0000000a; --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101012; --panel: #17171a; --panel-2: #1e1e22; --line: #28282e; --text: #ececef; --muted: #8f8f99;
+    --accent: #ff6a3d; --accent-soft: #2d1b15; --ok: #5cc27d; --ok-soft: #18291e; --focus: #ff6a3d66;
+    --shadow: none; --log-bg: #0b0b0d;
+  }
+}
+body { font-size: 14px; -webkit-font-smoothing: antialiased; }
+.top { background: color-mix(in srgb, var(--panel) 82%, transparent); backdrop-filter: blur(10px); }
+.logo { border-radius: 9px; background: linear-gradient(135deg, var(--accent), #b8361a); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent); }
+main { padding: 32px 40px 100px; }
+main h1 { font-size: 26px; font-weight: 650; letter-spacing: -.02em; margin-bottom: 6px; }
+main .lead { margin-bottom: 26px; max-width: 70ch; }
+.card { border-color: var(--line); margin-bottom: 12px; overflow: hidden; }
+.card > .head { padding: 14px 18px; gap: 12px; }
+.card > .head h3 { font-size: 15px; font-weight: 600; }
+.card .card { margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: var(--panel-2); }
+.card .card > .head { padding-left: 22px; }
+.row { padding: 11px 18px; gap: 20px; }
+.label .name { font-weight: 500; }
+
+/* Descriptions behind an i, keys on hover */
+.label .desc { display: none; max-width: 62ch; }
+.row.show-desc .label .desc { display: block; }
+.info { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 2px; margin-left: 4px; font-size: 13px; line-height: 1; opacity: .55; vertical-align: 1px; }
+.info:hover, .row.show-desc .info { opacity: 1; color: var(--accent); }
+.label .key, .card > .head h3 .key { opacity: 0; transition: opacity .15s; }
+.row:hover .label .key, .card > .head:hover h3 .key { opacity: 1; }
+
+/* Folding cards */
+.card.fold > .head { cursor: pointer; user-select: none; }
+.card.fold > .head::before { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; flex: none; margin: 0 2px 3px 0; }
+.card.fold.collapsed > .head::before { transform: rotate(-45deg); margin: 0 2px 0 0; }
+.card.fold.collapsed > :not(.head) { display: none; }
+.card.fold.collapsed > .head { border-bottom: 0; }
+.card.fold > .head:hover { background: var(--panel-2); }
+.card.fold > .head > div:first-of-type { flex: 1; min-width: 0; }
+.card.fold.collapsed > .head p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fold-state { font-size: 11.5px; padding: 2px 9px; border-radius: 99px; background: var(--panel-2); color: var(--muted); white-space: nowrap; border: 1px solid var(--line); }
+.fold-state.changed { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.fold-state.off { background: transparent; }
+
+/* A group switched off shows only its switch */
+.fields.off > :not(.master):not(.rows) { display: none; }
+.fields.off > .row.master { border-bottom: 0; }
+
+/* Sidebar */
+nav { padding: 18px 12px; }
+nav button { padding: 7px 10px; gap: 10px; color: var(--muted); font-weight: 500; }
+nav button:hover { background: var(--panel); color: var(--text); }
+nav button.active { background: var(--accent-soft); color: var(--accent); box-shadow: none; font-weight: 600; }
+.ico { width: 17px; height: 17px; flex: none; display: inline-grid; place-items: center; }
+.ico svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+nav .state { font-size: 10.5px; }
+nav button > span:not(.ico):not(.state) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+nav .sep { margin: 12px 10px; }
+.with-toc .toc a.on { font-weight: 600; }
 
 @media (max-width: 760px) {
   .layout { grid-template-columns: 1fr; }
@@ -343,6 +403,7 @@ const UI = {
     step: "Step: {0}", idle: "Not running", doneRuns: "Finished runs", exitCode: "exit code {0}", stopped: "stopped", ok: "done",
     attempt: "attempt {0}", rerolled: "requirements not met, another seed",
     searchSettings: "Search settings", searchNone: "Nothing found", onThisPage: "On this page",
+    about: "What is this", nChanged: "{0} changed", defaults: "default",
     mapsTab: "Maps", mapsTitle: "Generated maps", mapsLead: "Every map in maps/ with what's on it. Filter by size and the monuments it must have.",
     mapsNoApi: "The map list needs the launcher: open the editor through CustomGeneratorLauncher.exe.", mapsEmpty: "No maps match.",
     allSizes: "All sizes", sizeSmall: "Small (up to 2500)", sizeMedium: "Medium (3000-4000)", sizeLarge: "Large (4500+)",
@@ -401,6 +462,7 @@ const UI = {
     step: "Шаг: {0}", idle: "Не запущено", doneRuns: "Завершённые запуски", exitCode: "код выхода {0}", stopped: "остановлено", ok: "готово",
     attempt: "попытка {0}", rerolled: "требования не выполнены, другой сид",
     searchSettings: "Поиск настроек", searchNone: "Ничего не найдено", onThisPage: "На странице",
+    about: "Что это", nChanged: "изменено: {0}", defaults: "по умолчанию",
     mapsTab: "Карты", mapsTitle: "Сгенерированные карты", mapsLead: "Все карты из maps/ и что на них есть. Фильтр по размеру и монументам, которые должны быть.",
     mapsNoApi: "Списку карт нужен лаунчер: откройте редактор через CustomGeneratorLauncher.exe.", mapsEmpty: "Подходящих карт нет.",
     allSizes: "Все размеры", sizeSmall: "Маленькие (до 2500)", sizeMedium: "Средние (3000-4000)", sizeLarge: "Большие (4500+)",
@@ -627,8 +689,10 @@ function fieldRow(key, node, obj, onChange, ctx) {
   const get = () => obj[key] !== undefined ? obj[key] : node.default;
   const row = h("div", { class: "row", "data-key": key });
   const err = h("p", { class: "err" });
+  const info = node.description ? h("button", { type: "button", class: "info", title: node.description, "aria-label": t("about"),
+    onclick: () => row.classList.toggle("show-desc") }, "ⓘ") : null;
   const label = h("div", { class: "label" },
-    h("span", { class: "name" }, ...nameParts(key, node)), h("span", { class: "changed-dot", title: hasDefault ? t("defaultIs", JSON.stringify(node.default)) : null }),
+    h("span", { class: "name" }, ...nameParts(key, node)), info, h("span", { class: "changed-dot", title: hasDefault ? t("defaultIs", JSON.stringify(node.default)) : null }),
     node.description ? h("p", { class: "desc" }, node.description) : null, err);
   const control = h("div", { class: "control" });
   row.append(label, control);
@@ -800,6 +864,57 @@ function nameParts(key, node) {
   return label === key ? [key] : [label, h("span", { class: "key" }, key)];
 }
 
+/* ---------- folding and topics ---------- */
+// Settings that differ from their defaults, through nested groups (lists don't count)
+function changedCount(node, obj, keys) {
+  let n = 0;
+  for (const key of keys || Object.keys(node.properties || {})) {
+    const child = node.properties[key];
+    if (!child || key.startsWith("$") || child.readOnly) continue;
+    if (isGroup(child)) n += changedCount(child, obj?.[key] || {});
+    else if (!isObjectList(child) && child.default !== undefined && obj && key in obj && !same(obj[key], child.default)) n++;
+  }
+  return n;
+}
+
+// A card that folds to its header. state() returns [text, class] for the chip on the right
+function foldable(card, id, state) {
+  const head = card.querySelector(":scope > .head");
+  const chip = h("span", { class: "fold-state" });
+  head.append(chip);
+  card.classList.add("fold");
+  const update = () => { const [text, cls] = state(); chip.textContent = text || ""; chip.hidden = !text; chip.className = "fold-state " + (cls || ""); };
+  const saved = store.get("fold." + id, null);
+  // First time: open where something is changed, folded where everything is default
+  card.classList.toggle("collapsed", saved === null ? state()[1] !== "changed" : !saved);
+  head.addEventListener("click", e => {
+    if (e.target.closest("button, a, input, select")) return;
+    const open = card.classList.toggle("collapsed") === false;
+    store.set("fold." + id, open);
+  });
+  card.updateFold = update;
+  update();
+  return card;
+}
+function foldState(n, off) {
+  return off ? [t("off"), "off"] : n ? [t("nChanged", n), "changed"] : [t("defaults"), ""];
+}
+function openFolds(el) {
+  for (let c = el?.closest(".card.collapsed"); c; c = c.parentElement?.closest(".card.collapsed")) c.classList.remove("collapsed");
+}
+
+// Long sections are split into topic cards; fields are code names (x-name), groups can go inside a topic
+const TOPICS = {
+  Generator: [
+    { id: "land", title: ["Land and terrain", "Суша и рельеф"], fields: ["LandShape"], inline: true },
+    { id: "rivers", title: ["Rivers", "Реки"], fields: ["RemoveRivers", "RiverWidthScale", "MaxRivers", "RiverSpacing"] },
+    { id: "roads", title: ["Roads and rails", "Дороги и ЖД"], fields: ["Road", "Rail", "RemoveCarWrecks", "AllowRoadBuild", "RemoveRailLinks"] },
+    { id: "under", title: ["Underground and powerlines", "Подземка и ЛЭП"], fields: ["RemoveTunnelsEntrances", "RemoveTunnels", "RemovePowerlines"] },
+    { id: "nature", title: ["Nature and decor", "Природа и декор"], fields: ["UniqueEnviroment", "DecorDensity", "RemoveGrass", "BlockedPrefabs"] },
+    { id: "percent", title: ["Tiers and biomes", "Тиры и биомы"], fields: ["ModifyPercentages", "Tier", "Biom"] },
+  ],
+};
+
 /* ---------- groups and lists ---------- */
 // rowsCard: plain rows go into their own card, groups and lists follow as separate cards (section level)
 function renderFields(node, obj, onAnyChange, rowsCard, ctx) {
@@ -807,26 +922,54 @@ function renderFields(node, obj, onAnyChange, rowsCard, ctx) {
   const rows = rowsCard ? h("div", { class: "fields" }) : fields;
   if (rowsCard) fields.append(h("section", { class: "card rows" }, rows));
   const master = masterKey(node, obj);
+  const topicCards = [];
   const applyMaster = () => {
     const off = master !== undefined && obj[master] === false;
     fields.classList.toggle("off", off);
     rows.classList.toggle("off", off);
   };
-  const notify = () => { applyMaster(); onAnyChange && onAnyChange(); };
+  const notify = () => { applyMaster(); topicCards.forEach(c => c.updateFold()); onAnyChange && onAnyChange(); };
+
+  // Topic cards (section level only): each field goes to the topic that lists its code name
+  const topics = rowsCard ? TOPICS[node["x-name"]] : null;
+  const home = {};
+  if (topics) for (const topic of topics) {
+    const keys = topic.fields.map(n => keyOf(node, n)).filter(Boolean);
+    if (!keys.length) continue;
+    if (topic.inline) { for (const k of keys) home[k] = fields; continue; }
+    const body = h("div", { class: "fields" });
+    const card = h("section", { class: "card topic", "data-key": "@" + topic.id },
+      h("div", { class: "head" }, h("div", {}, h("h3", {}, topic.title[S.lang === "ru" ? 1 : 0]))), body);
+    foldable(card, S.section + "/@" + topic.id, () => foldState(changedCount(node, obj, keys)));
+    topicCards.push(card);
+    for (const k of keys) home[k] = body;
+  }
+  // Topic cards keep the order of the TOPICS list, inline groups take their place in it
+  if (topics) for (const topic of topics) {
+    const keys = topic.fields.map(n => keyOf(node, n)).filter(Boolean);
+    if (!keys.length) continue;
+    if (topic.inline) fields.append(h("div", { class: "slot", "data-slot": keys[0] }));
+    else fields.append(topicCards.find(c => c.dataset.key === "@" + topic.id));
+  }
 
   for (const [key, child] of Object.entries(node.properties)) {
     if (key.startsWith("$") || (child.readOnly && !(key in obj))) continue;
+    const target = home[key];
+    let el;
     if (isGroup(child)) {
       if (typeof obj[key] !== "object" || obj[key] === null) obj[key] = defaultsFor(child);
-      fields.append(groupCard(key, child, obj[key], notify, ctx));
+      el = groupCard(key, child, obj[key], notify, ctx);
     } else if (isObjectList(child)) {
       if (!Array.isArray(obj[key])) obj[key] = [];
-      fields.append(listCard(key, child, obj[key], notify));
+      el = listCard(key, child, obj[key], notify);
     } else {
-      const row = fieldRow(key, child, obj, notify, ctx);
-      if (key === master) row.classList.add("master");
-      rows.append(row);
+      el = fieldRow(key, child, obj, notify, ctx);
+      if (key === master) el.classList.add("master");
+      if (!target) { rows.append(el); continue; }
     }
+    const slot = target === fields ? fields.querySelector(`.slot[data-slot="${CSS.escape(key)}"]`) : null;
+    if (slot) slot.replaceWith(el);
+    else (target || fields).append(el);
   }
   if (rowsCard && !rows.childElementCount) fields.firstElementChild.remove();
   applyMaster();
@@ -840,7 +983,7 @@ function groupCard(title, node, obj, onAnyChange, ctx) {
     sum = h("span", { class: "sum" });
     head.append(sum);
   }
-  const fields = renderFields(node, obj, () => { updateSum(); bar && bar.update(); onAnyChange && onAnyChange(); }, false, ctx);
+  const fields = renderFields(node, obj, () => { updateSum(); bar && bar.update(); card.updateFold && card.updateFold(); onAnyChange && onAnyChange(); }, false, ctx);
   const updateSum = () => {
     if (!sum) return;
     const spec = node["x-sum"];
@@ -854,7 +997,8 @@ function groupCard(title, node, obj, onAnyChange, ctx) {
   if (node["x-sum"]) { bar = percentBar(node, obj, fields); card.append(bar.el); }
   card.append(fields);
   updateSum();
-  return card;
+  const master = masterKey(node, obj);
+  return foldable(card, S.section + "/" + title, () => foldState(changedCount(node, obj), master !== undefined && obj[master] === false));
 }
 
 function sumKeys(node) {
@@ -934,6 +1078,8 @@ function listCard(title, node, list, onAnyChange) {
   if (tools.childElementCount) card.append(tools);
   card.append(items);
   draw();
+  foldable(card, S.section + "/" + title, () => [null, "changed"]);
+  card.classList.toggle("collapsed", store.get("fold." + S.section + "/" + title, true) === false);
   return card;
 }
 
@@ -1061,14 +1207,28 @@ function render() {
   drawNav(); drawSection(); updateTop();
 }
 
+const ICONS = {
+  [TAB_GENERATE]: '<path d="M7 4.5v15l12-7.5z"/>',
+  [TAB_LAST]: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  [TAB_MAPS]: '<path d="M3.5 6.5l5.5-2.5 6 2.5 5.5-2.5v13.5l-5.5 2.5-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
+  mapSettings: '<path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/>',
+  MapImage: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 15.5l-5-5-9.5 9"/>',
+  Generator: '<path d="M2.5 19.5l6.5-11 4 6.5 2.5-3.5 6 8z"/>',
+  Swap: '<path d="M4 8.5h14l-3.5-3.5M20 15.5H6l3.5 3.5"/>',
+  Monuments: '<path d="M4 20h16M6 20v-8M10 20v-8M14 20v-8M18 20v-8M3 12l9-6.5 9 6.5z"/>',
+  CustomMonuments: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M12 8.5v7M8.5 12h7"/>',
+  Requirements: '<path d="M10 7h10M10 12h10M10 17h10"/><path d="M4 7l1.3 1.3L7.5 6M4 12l1.3 1.3 2.2-2.3M4 17l1.3 1.3 2.2-2.3"/>',
+};
+const icon = id => ICONS[id] ? h("span", { class: "ico", html: `<svg viewBox="0 0 24 24">${ICONS[id]}</svg>` }) : h("span", { class: "ico" });
+
 function drawNav() {
   const nav = document.getElementById("nav");
   const tab = (key, label, state) => h("button", { type: "button", class: key === S.section ? "active" : "", "data-key": key,
-    onclick: () => go(key) }, h("span", {}, label), state);
+    onclick: () => go(key) }, icon(S.schema?.properties[key]?.["x-name"] || key), h("span", {}, label), state);
   const genState = generating() ? h("span", { class: "state busy" }, "●") : null;
   fill(nav,
     S.config ? searchBox() : null,
-    tab(TAB_GENERATE, "▶ " + t("generate"), genState),
+    tab(TAB_GENERATE, t("generate"), genState),
     tab(TAB_LAST, t("lastRun"), S.extra.lastRun ? h("span", { class: "state" }, S.extra.lastRun.size) : null),
     tab(TAB_MAPS, t("mapsTab"), null),
     sections().length ? h("div", { class: "sep" }) : null,
@@ -1141,12 +1301,13 @@ function searchBox() {
 function reveal(path) {
   let scope = document.getElementById("main"), el = null;
   for (const [i, key] of path.entries()) {
-    const sel = i === path.length - 1 ? `[data-key="${CSS.escape(key)}"]` : `section[data-key="${CSS.escape(key)}"]`;
+    const sel = i === path.length - 1 ? `[data-key="${CSS.escape(key)}"]:not(.topic)` : `section[data-key="${CSS.escape(key)}"]`;
     el = scope.querySelector(sel);
     if (!el) break;
     scope = el;
   }
   if (!el) return;
+  openFolds(el);
   el.scrollIntoView({ behavior: "smooth", block: "center" });
   el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
 }
@@ -1184,7 +1345,7 @@ function drawSection() {
     toc.append(h("b", {}, t("onThisPage")));
     for (const card of cards) {
       const title = card.querySelector(".head h3")?.firstChild?.textContent || card.dataset.key;
-      toc.append(h("a", { href: "#", onclick: e => { e.preventDefault(); card.scrollIntoView({ behavior: "smooth", block: "start" }); } }, title));
+      toc.append(h("a", { href: "#", onclick: e => { e.preventDefault(); card.classList.remove("collapsed"); card.scrollIntoView({ behavior: "smooth", block: "start" }); } }, title));
     }
   }
   main.replaceChildren(h("div", { class: "page" + (cards.length > 1 ? " with-toc" : "") }, h("div", {}, ...content), toc));
@@ -1412,11 +1573,14 @@ function serverCard() {
     catch (e) { toast(e.message); }
   };
   input.addEventListener("keydown", e => { if (e.key === "Enter") save(); });
-  return h("section", { class: "card" },
-    h("div", { class: "head" }, h("h3", {}, t("serverTitle")), h("span", { class: "badge " + (S.extra.rustFound ? "on" : "alert") }, S.extra.rustFound ? t("serverFound") : t("serverMissing"))),
+  // Folded once the server is found: it's set up once and then only takes room
+  const card = h("section", { class: "card" },
+    h("div", { class: "head" }, h("div", {}, h("h3", {}, t("serverTitle")), L.server ? h("p", {}, L.server) : null),
+      h("span", { class: "badge " + (S.extra.rustFound ? "on" : "alert") }, S.extra.rustFound ? t("serverFound") : t("serverMissing"))),
     h("div", { class: "body" },
       h("div", { style: "display:flex; gap:8px" }, input, h("button", { type: "button", class: "btn", disabled: generating(), onclick: save }, t("serverSave"))),
       h("div", { class: "hint", style: "margin-top:8px" }, t("serverHint", L.root))));
+  return foldable(card, "server." + (S.extra.rustFound ? "ok" : "missing"), () => [null, S.extra.rustFound ? "" : "changed"]);
 }
 
 async function copy(text, button) {
