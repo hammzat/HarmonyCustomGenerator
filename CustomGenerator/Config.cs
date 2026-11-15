@@ -396,8 +396,17 @@ namespace CustomGenerator
             [Desc("Land below sea level that isn't connected to the ocean (salt water lakes inside islands) is raised just above the sea",
                   "Суша ниже уровня моря, не связанная с океаном (солёные озёра внутри островов), поднимается чуть выше моря")]
             public bool FillInlandSea = false;
+            [Loc("Volcano height (m, 0 = none)", "Высота вулкана (м, 0 = нет)")]
+            [Desc("A lone cone with a crater on the land point furthest from the water. 150-250 looks right",
+                  "Одинокий конус с кратером в точке суши, дальше всего от воды. Хорошо смотрится 150-250")]
+            [Schema(Min = 0, Max = 400)]
+            public float VolcanoHeight = 0f;
+            [Loc("Volcano radius (m)", "Радиус вулкана (м)")]
+            [Desc("Smaller on a narrow island, so the cone stays on land", "Меньше на узком острове, чтобы конус остался на суше")]
+            [Schema(Min = 100, Max = 1500)]
+            public float VolcanoRadius = 450f;
 
-            public bool Changes => LandLevel != 0f || MountainHeight != 1f || BeachHeight > 0f || ShelfDepth > 0f || FillInlandSea;
+            public bool Changes => LandLevel != 0f || MountainHeight != 1f || BeachHeight > 0f || ShelfDepth > 0f || FillInlandSea || VolcanoHeight > 0f;
         }
 
         public sealed class TierSettings {
@@ -603,6 +612,8 @@ namespace CustomGenerator
             land.MountainHeight = Mathf.Clamp(land.MountainHeight, 0.2f, 3f);
             land.BeachHeight = Mathf.Clamp(land.BeachHeight, 0f, 40f);
             land.ShelfDepth = Mathf.Clamp(land.ShelfDepth, 0f, 40f);
+            land.VolcanoHeight = Mathf.Clamp(land.VolcanoHeight, 0f, 400f);
+            land.VolcanoRadius = Mathf.Clamp(land.VolcanoRadius, 100f, 1500f);
             foreach (var key in gen.DecorDensity.Keys.Where(x => string.IsNullOrWhiteSpace(x) || gen.DecorDensity[x] < 0f).ToList()) {
                 Logging.Warning($"Decor density '{key}': {gen.DecorDensity[key]} skipped, needs a folder and a multiplier of 0 or more");
                 gen.DecorDensity.Remove(key);
