@@ -371,6 +371,14 @@ const PRESETS = [
       c.set("Generator.Rail", { ShouldChange: true, Enabled: true, GenerateRing: true, GenerateSideMonuments: true, GenerateSideObjects: false });
       c.set("Generator.RemoveRivers", true);
     } },
+  { title: { en: "Many rivers, more icebergs and ores", ru: "Много рек, больше айсбергов и руды" },
+    desc: { en: "Up to 8 rivers 300 m apart, icebergs x3, ore nodes x2.", ru: "До 8 рек на расстоянии 300 м, айсберги x3, руда x2." },
+    apply: c => {
+      c.set("Generator.RemoveRivers", false);
+      c.set("Generator.MaxRivers", 8);
+      c.set("Generator.RiverSpacing", 300);
+      c.set("Generator.DecorDensity", { "decor/iceberg": 3, "resource/ores": 2 });
+    } },
   { title: { en: "More snow, less desert", ru: "Больше снега, меньше пустыни" },
     desc: { en: "Arid 15, Temperate 25, Tundra 20, Arctic 40, Jungle 30.", ru: "Пустыня 15, умеренный 25, тундра 20, арктика 40, джунгли 30." },
     apply: c => {

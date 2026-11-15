@@ -106,6 +106,22 @@ namespace CustomGenerator
             [Schema(Min = 0)]
             public float RiverWidthScale = 1f;
 
+            [Loc("Max rivers (0 = vanilla)", "Максимум рек (0 = как в игре)")]
+            [Desc("The game keeps at most 2 rivers, 3 on maps over 4000; jungle rivers don't count. More rivers need room: each one needs a slope to start and the spacing below",
+                  "Игра оставляет не больше 2 рек, 3 на картах больше 4000; реки джунглей не считаются. Для большего числа нужно место: склон для начала и расстояние ниже")]
+            [Schema(Min = 0, Max = 50)]
+            public int MaxRivers = 0;
+            [Loc("Min distance between rivers (m)", "Мин. расстояние между реками (м)")]
+            [Desc("Vanilla 520. Less lets more rivers fit", "В игре 520. Меньше - поместится больше рек")]
+            [Schema(Min = 50)]
+            public float RiverSpacing = 520f;
+
+            [Loc("Decor density (part of folder: multiplier)", "Плотность декора (часть папки: множитель)")]
+            [Desc("More or fewer decor and resources by their folder under autospawn/, e.g. \"decor/iceberg\": 3, \"resource/ores\": 2, \"decor/v3_rock_formations\": 0.5. 0 = none",
+                  "Больше или меньше декора и ресурсов по папке в autospawn/, например \"decor/iceberg\": 3, \"resource/ores\": 2, \"decor/v3_rock_formations\": 0.5. 0 = ни одного")]
+            [Schema(Min = 0)]
+            public Dictionary<string, float> DecorDensity = new Dictionary<string, float>();
+
             [Loc("Remove Car Wrecks around Road", "Удалить разбитые префабы машин около дороги")]
             public bool RemoveCarWrecks = false;
             [Loc("Allow building on road", "Разрешить строительство на дорогах")]
@@ -527,6 +543,20 @@ namespace CustomGenerator
             if (req.MaxAttempts < 1 || req.MaxAttempts > 100) {
                 Logging.Warning($"Map requirements: MaxAttempts must be 1-100 (got {req.MaxAttempts}), using {Mathf.Clamp(req.MaxAttempts, 1, 100)}");
                 req.MaxAttempts = Mathf.Clamp(req.MaxAttempts, 1, 100);
+            }
+
+            if (gen.MaxRivers < 0 || gen.MaxRivers > 50) {
+                Logging.Warning($"Max rivers must be 0-50 (got {gen.MaxRivers}), using {Mathf.Clamp(gen.MaxRivers, 0, 50)}");
+                gen.MaxRivers = Mathf.Clamp(gen.MaxRivers, 0, 50);
+            }
+            if (gen.RiverSpacing < 50f) {
+                Logging.Warning($"Min distance between rivers must be at least 50 (got {gen.RiverSpacing}), using 50");
+                gen.RiverSpacing = 50f;
+            }
+            gen.DecorDensity ??= new Dictionary<string, float>();
+            foreach (var key in gen.DecorDensity.Keys.Where(x => string.IsNullOrWhiteSpace(x) || gen.DecorDensity[x] < 0f).ToList()) {
+                Logging.Warning($"Decor density '{key}': {gen.DecorDensity[key]} skipped, needs a folder and a multiplier of 0 or more");
+                gen.DecorDensity.Remove(key);
             }
 
             if (gen.RiverWidthScale <= 0f) {
