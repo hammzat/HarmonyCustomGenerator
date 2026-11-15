@@ -138,8 +138,12 @@ namespace CustomGenerator
         public class CustomMonument {
             [Desc("Place this monument", "Размещать этот монумент")]
             public bool Enabled = true;
-            [Desc("Name for the log, the file name is used if empty", "Имя для лога, если пусто - используется имя файла")]
+            [Desc("Name on the in-game map, the map image and in the log, the file name is used if empty",
+                  "Имя на карте в игре, на превью и в логе, если пусто - используется имя файла")]
             public string Name = "";
+            [Desc("Name the monument on the in-game map with Name: adds a monument marker in the center, the file's own markers get Name too",
+                  "Подписать монумент на карте в игре именем из Name: ставит монумент-маркер в центр, свои маркеры файла тоже получают Name")]
+            public bool MapMarker = true;
             [Desc("File in the custom monuments folder, e.g. \"my_gas_station.map\" or \"my_gas_station.prefab\"",
                   "Файл в папке кастомных монументов, например \"my_gas_station.map\" или \"my_gas_station.prefab\"")]
             [Schema(Suggest = "customFiles")]
