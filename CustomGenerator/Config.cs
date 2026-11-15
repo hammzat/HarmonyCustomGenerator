@@ -147,6 +147,10 @@ namespace CustomGenerator
 
             [Loc("Remove underground tunnels (also removes entrances)", "Удалить подземные туннели (вместе со входами)")]
             public bool RemoveTunnels = false;
+            [Loc("No rail link to the metro", "Без связи ЖД с метро")]
+            [Desc("Tunnel entrances where the surface rail goes underground aren't placed: the surface rail and the metro stay apart. Entrances for players stay",
+                  "Входы в туннели, где наземная ЖД уходит под землю, не ставятся: наземная ЖД и метро не связаны. Входы для игроков остаются")]
+            public bool RemoveRailLinks = false;
 
             [Loc("Blocked prefabs", "Заблокированные префабы")]
             [Desc("Prefabs that never get on the map: a part of the path (\"decor/iceberg\", \"monument/cave/\"), a full path for an exact match, * for any text. Case doesn't matter. Doesn't touch custom monuments and the swap",

@@ -49,6 +49,7 @@
     <Compile Include="Patches\RemoveGrass.cs" />
     <Compile Include="Patches\StepProgress.cs" />
     <Compile Include="Patches\LandShape.cs" />
+    <Compile Include="Patches\RailLinks.cs" />
     <Compile Include="Patches\RailRing.cs" />
     <Compile Include="Patches\River.cs" />
     <Compile Include="Patches\RoadRing.cs" />
