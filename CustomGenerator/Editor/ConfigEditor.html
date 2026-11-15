@@ -392,6 +392,19 @@ const PRESETS = [
   { title: { en: "Clean roads", ru: "Чистые дороги" },
     desc: { en: "No car wrecks along roads, building on roads allowed.", ru: "Без обломков машин у дорог, строить на дорогах можно." },
     apply: c => { c.set("Generator.RemoveCarWrecks", true); c.set("Generator.AllowRoadBuild", true); } },
+  { title: { en: "Barren", ru: "Пустошь" },
+    desc: { en: "No grass, decor rocks, cliffs, icebergs, caves, ice lakes, swamps, rivers, powerlines, tunnels or rail ring.",
+            ru: "Без травы, декоративных камней, скал, айсбергов, пещер, ледяных озёр, болот, рек, ЛЭП, туннелей и ЖД-кольца." },
+    apply: c => {
+      c.set("Generator.RemoveGrass", true);
+      c.set("Generator.BlockedPrefabs", ["autospawn/decor/"]);
+      c.set("Generator.RemoveRivers", true);
+      c.set("Generator.RemovePowerlines", true);
+      c.set("Generator.RemoveTunnels", true);
+      c.set("Generator.Rail", { ShouldChange: true, Enabled: false, GenerateRing: false, GenerateSideMonuments: false, GenerateSideObjects: false });
+      // Groups, not blocked prefabs: a group that isn't generated doesn't touch the terrain either
+      for (const folder of ["monument/cave", "monument/ice_lakes", "monument/swamp"]) c.group(folder, { ShouldChange: true, Generate: false });
+    } },
   { title: { en: "Quick preview", ru: "Быстрое превью" },
     desc: { en: "Smaller preview image: scale 0.5, ocean margin 100, still with grid and names.", ru: "Картинка поменьше: масштаб 0.5, отступ океана 100, с сеткой и подписями." },
     apply: c => c.set("MapImage", { Enabled: true, Scale: 0.5, OceanMargin: 100 }) },

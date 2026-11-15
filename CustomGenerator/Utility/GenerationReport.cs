@@ -64,7 +64,8 @@ namespace CustomGenerator.Utility
             if (group.Folder == null || NatureFolders.Any(group.Folder.Contains) || !GroupPrefabs.TryGetValue(group.Folder, out var all)) return new List<string>();
             var cfg = ExtConfig.Config.Monuments.Enabled ? ExtConfig.Config.Monuments.monuments.FirstOrDefault(x => x.ShouldChange && x.Folder == group.Folder) : null;
             var placed = new HashSet<string>(group.Prefabs.Select(Kind));
-            return all.Where(x => cfg == null || Allowed(cfg, x)).Select(Kind).Distinct().Where(x => !placed.Contains(x)).ToList();
+            var blocked = new HashSet<string>(Patches.PrefabFilter.Results().SelectMany(x => x.Names));
+            return all.Where(x => (cfg == null || Allowed(cfg, x)) && !blocked.Contains(x)).Select(Kind).Distinct().Where(x => !placed.Contains(x)).ToList();
         }
 
         private static readonly string[] NatureFolders = { "cave", "unique_environment", "tunnel", "swamp", "ice_lake", "mountain", "tiny" };
@@ -136,6 +137,16 @@ namespace CustomGenerator.Utility
                 }
             }
 
+            var blockedPrefabs = Patches.PrefabFilter.Results().ToList();
+            if (blockedPrefabs.Count > 0) {
+                text.AppendLine();
+                text.AppendLine("Blocked prefabs:");
+                int width = blockedPrefabs.Max(x => x.Pattern.Length);
+                foreach (var rule in blockedPrefabs)
+                    text.AppendLine($"  {rule.Pattern.PadRight(width)}  {rule.Names.Count} prefabs out of the candidates, {rule.Placements} placements stopped"
+                        + (rule.Names.Count > 0 ? $": {string.Join(", ", rule.Names.Take(12))}{(rule.Names.Count > 12 ? ", ..." : "")}" : ""));
+            }
+
             if (CustomMonuments.Count > 0) {
                 text.AppendLine();
                 text.AppendLine("Custom monuments:");
@@ -170,6 +181,8 @@ namespace CustomGenerator.Utility
             ["groups"] = new JArray(Groups.Select(x => new JObject {
                 ["name"] = x.Name, ["folder"] = x.Folder, ["target"] = x.Target, ["prefabs"] = new JArray(x.Prefabs), ["missing"] = new JArray(Missing(x)) })),
             ["world"] = WorldJson(Summary),
+            ["blocked"] = new JArray(Patches.PrefabFilter.Results().Select(x => new JObject {
+                ["pattern"] = x.Pattern, ["names"] = new JArray(x.Names), ["placements"] = x.Placements })),
             ["requirements"] = _requirements == null ? null : new JObject {
                 ["met"] = _requirements.Met, ["reroll"] = _requirements.Reroll, ["attempt"] = _requirements.Attempt, ["maxAttempts"] = _requirements.MaxAttempts,
                 ["missing"] = new JArray(_requirements.Missing.Select(x => new JObject { ["name"] = x.Name, ["need"] = x.Need, ["have"] = x.Have })) },

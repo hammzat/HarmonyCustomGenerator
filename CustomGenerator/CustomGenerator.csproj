@@ -43,6 +43,8 @@
     <Compile Include="Shared\MapExtras.cs" />
     <Compile Include="HarmonyHooks.cs" />
     <Compile Include="Patches\Monuments.cs" />
+    <Compile Include="Patches\PrefabFilter.cs" />
+    <Compile Include="Patches\RemoveGrass.cs" />
     <Compile Include="Patches\RailRing.cs" />
     <Compile Include="Patches\River.cs" />
     <Compile Include="Patches\RoadRing.cs" />

@@ -118,6 +118,15 @@ namespace CustomGenerator
             [Loc("Remove underground tunnels (also removes entrances)", "Удалить подземные туннели (вместе со входами)")]
             public bool RemoveTunnels = false;
 
+            [Loc("Blocked prefabs", "Заблокированные префабы")]
+            [Desc("Prefabs that never get on the map: a part of the path (\"decor/iceberg\", \"monument/cave/\"), a full path for an exact match, * for any text. Case doesn't matter. Doesn't touch custom monuments and the swap",
+                  "Префабы, которые никогда не попадут на карту: часть пути (\"decor/iceberg\", \"monument/cave/\"), полный путь для точного совпадения, * для любого текста. Регистр не важен. Не трогает кастомные монументы и свап")]
+            public List<string> BlockedPrefabs = new List<string>();
+            [Loc("Remove grass", "Убрать траву")]
+            [Desc("Grass ground texture becomes dirt, so no grass grows. Changes the look of the map",
+                  "Текстура травы становится землёй, и трава не растёт. Меняет вид карты")]
+            public bool RemoveGrass = false;
+
             [Loc("Change percentages", "Изменить проценты")]
             public bool ModifyPercentages = false;
             [Loc("Tier Percentages (100 in total)", "Проценты Тиров (всего 100)")]
