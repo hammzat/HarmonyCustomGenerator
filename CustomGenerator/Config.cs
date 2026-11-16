@@ -409,8 +409,30 @@ namespace CustomGenerator
             [Desc("Smaller on a narrow island, so the cone stays on land", "Меньше на узком острове, чтобы конус остался на суше")]
             [Schema(Min = 100, Max = 1500)]
             public float VolcanoRadius = 450f;
+            [Loc("Islands near the coast", "Острова у берега")]
+            [Desc("How many small islands to add in the sea along the coasts, away from the map edge. 0 = none",
+                  "Сколько маленьких островов добавить в море вдоль берегов, вдали от края карты. 0 = нет")]
+            [Schema(Min = 0, Max = 40)]
+            public int IslandCount = 0;
+            [Loc("Island size (m)", "Размер островов (м)")]
+            [Desc("Radius of an island; each one is 70-130% of it. 120-250 gives room for a base or a small monument",
+                  "Радиус острова, каждый получается 70-130% от него. 120-250 — место под базу или небольшой монумент")]
+            [Schema(Min = 50, Max = 500)]
+            public float IslandSize = 180f;
+            [Loc("Island distance from the coast (m)", "Расстояние островов от берега (м)")]
+            [Desc("Islands stand at most this far from the coast, and always at least 40 m away from it",
+                  "Острова стоят не дальше этого от берега и всегда хотя бы в 40 м от него")]
+            [Schema(Min = 50, Max = 1500)]
+            public float IslandDistance = 300f;
 
-            public bool HasChanges() => LandLevel != 0f || MountainHeight != 1f || BeachHeight > 0f || ShelfDepth > 0f || FillInlandSea || VolcanoHeight > 0f;
+            public bool HasChanges() => LandLevel != 0f || MountainHeight != 1f || BeachHeight > 0f || ShelfDepth > 0f || FillInlandSea || VolcanoHeight > 0f
+                || IslandCount > 0;
+
+            public Shared.ShapeOptions Options(uint seed) => new Shared.ShapeOptions {
+                LandLevel = LandLevel, MountainHeight = MountainHeight, BeachHeight = BeachHeight, ShelfDepth = ShelfDepth, FillInlandSea = FillInlandSea,
+                IslandCount = IslandCount, IslandSize = IslandSize, IslandDistance = IslandDistance,
+                VolcanoHeight = VolcanoHeight, VolcanoRadius = VolcanoRadius, Seed = seed,
+            };
         }
 
         public sealed class TierSettings {
@@ -618,6 +640,9 @@ namespace CustomGenerator
             land.ShelfDepth = Mathf.Clamp(land.ShelfDepth, 0f, 40f);
             land.VolcanoHeight = Mathf.Clamp(land.VolcanoHeight, 0f, 400f);
             land.VolcanoRadius = Mathf.Clamp(land.VolcanoRadius, 100f, 1500f);
+            land.IslandCount = Mathf.Clamp(land.IslandCount, 0, 40);
+            land.IslandSize = Mathf.Clamp(land.IslandSize, 50f, 500f);
+            land.IslandDistance = Mathf.Clamp(land.IslandDistance, 50f, 1500f);
             foreach (var key in gen.DecorDensity.Keys.Where(x => string.IsNullOrWhiteSpace(x) || gen.DecorDensity[x] < 0f).ToList()) {
                 Logging.Warning($"Decor density '{key}': {gen.DecorDensity[key]} skipped, needs a folder and a multiplier of 0 or more");
                 gen.DecorDensity.Remove(key);
