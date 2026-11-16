@@ -391,7 +391,7 @@ namespace CustomGenerator.Utility {
         }
 
         private static void RenderGithub(Graphics graphics, string fontPath, int imageResolution) {
-            var text = "github.com/hammzat/HarmonyCustomGenerator - DeepSea Update [by aristocratos]";
+            var text = "github.com/hammzat/HarmonyCustomGenerator - Preview Update [by aristocratos]";
 
             float scaleFactor = 0.04f;
             int fontSize = Mathf.Clamp((int)(imageResolution * scaleFactor), 10, 30);

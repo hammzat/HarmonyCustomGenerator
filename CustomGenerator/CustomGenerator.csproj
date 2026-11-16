@@ -41,6 +41,8 @@
     <Compile Include="Custom\MapExtrasWriter.cs" />
     <Compile Include="Custom\SwapMonument.cs" />
     <Compile Include="Shared\MapExtras.cs" />
+    <Compile Include="Shared\HeightShape.cs" />
+    <Compile Include="Shared\HeightmapFile.cs" />
     <Compile Include="HarmonyHooks.cs" />
     <Compile Include="Patches\Monuments.cs" />
     <Compile Include="Patches\PrefabFilter.cs" />

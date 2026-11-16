@@ -56,7 +56,7 @@ a { color: var(--accent); }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
 
 /* Layout */
-.layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: calc(100% - 55px); }
+.layout { display: grid; grid-template-columns: 256px minmax(0, 1fr); min-height: calc(100% - 55px); }
 nav { border-right: 1px solid var(--line); padding: 16px 10px; position: sticky; top: 55px; align-self: start; height: calc(100vh - 55px); overflow: auto; }
 nav button { display: flex; width: 100%; align-items: center; gap: 8px; text-align: left; border: 0; background: none;
   padding: 8px 12px; border-radius: 8px; cursor: pointer; color: var(--text); }
@@ -235,7 +235,138 @@ pre.log .err { color: #ff8a80; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 30; }
 .toast.show { opacity: 1; }
 
+/* Readable names: the label, then the config key in mono */
+.label .key { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 8px; font-weight: 400; }
+.card > .head h3 .key { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 8px; font-weight: 400; }
+
+/* Search */
+.search { position: relative; margin: 0 2px 12px; }
+.search input { width: 100%; padding: 7px 10px 7px 30px; background: var(--panel); }
+.search::before { content: "⌕"; position: absolute; left: 10px; top: 50%; transform: translateY(-52%); color: var(--muted); font-size: 15px; pointer-events: none; }
+.search kbd { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font: 10.5px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; background: var(--panel-2); pointer-events: none; }
+.search input:focus + kbd, .search input:not(:placeholder-shown) + kbd { display: none; }
+.results { position: absolute; left: 0; right: 0; top: calc(100% + 4px); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 30px #0003; z-index: 10; max-height: 60vh; overflow: auto; padding: 4px; }
+.results button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 7px; cursor: pointer; color: var(--text); }
+.results button:hover, .results button.sel { background: var(--accent-soft); }
+.results small { display: block; color: var(--muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.results .none { padding: 10px; color: var(--muted); font-size: 13px; }
+.flash { animation: flash 1.6s ease-out; }
+@keyframes flash { 0%, 30% { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); } 100% { background: transparent; box-shadow: inset 3px 0 0 transparent; } }
+
+/* Contents of the page, on wide screens */
+.page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+.toc { display: none; }
+@media (min-width: 1380px) {
+  main { max-width: 1240px; }
+  .page.with-toc { grid-template-columns: minmax(0, 1fr) 200px; }
+  .with-toc .toc { display: block; position: sticky; top: 79px; align-self: start; font-size: 12.5px; border-left: 1px solid var(--line); padding-left: 14px; }
+  .toc b { display: block; color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .toc a { display: block; color: var(--muted); text-decoration: none; padding: 4px 0; line-height: 1.3; }
+  .toc a:hover, .toc a.on { color: var(--accent); }
+}
+.card, .row { scroll-margin-top: 72px; }
+
+/* ===== Calm look: palette, type, quieter cards ===== */
+:root {
+  --bg: #f6f5f3; --panel: #ffffff; --panel-2: #f8f7f5; --line: #ebe8e4; --text: #1d1b19; --muted: #7d776f;
+  --accent: #e4572e; --accent-soft: #fdece6; --ok: #2f8a4c; --ok-soft: #e3f3e8; --focus: #e4572e55;
+  --shadow: 0 1px 2px #0000000a; --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101012; --panel: #17171a; --panel-2: #1e1e22; --line: #28282e; --text: #ececef; --muted: #8f8f99;
+    --accent: #ff6a3d; --accent-soft: #2d1b15; --ok: #5cc27d; --ok-soft: #18291e; --focus: #ff6a3d66;
+    --shadow: none; --log-bg: #0b0b0d;
+  }
+}
+body { font-size: 14px; -webkit-font-smoothing: antialiased; }
+.top { background: color-mix(in srgb, var(--panel) 82%, transparent); backdrop-filter: blur(10px); }
+.logo { border-radius: 9px; background: linear-gradient(135deg, var(--accent), #b8361a); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent); }
+main { padding: 32px 40px 100px; }
+main h1 { font-size: 26px; font-weight: 650; letter-spacing: -.02em; margin-bottom: 6px; }
+main .lead { margin-bottom: 26px; max-width: 70ch; }
+.card { border-color: var(--line); margin-bottom: 12px; overflow: hidden; }
+.card > .head { padding: 14px 18px; gap: 12px; }
+.card > .head h3 { font-size: 15px; font-weight: 600; }
+.card .card { margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: var(--panel-2); }
+.card .card > .head { padding-left: 22px; }
+.row { padding: 11px 18px; gap: 20px; }
+.label .name { font-weight: 500; }
+
+/* Descriptions behind an i, keys on hover */
+.label .desc { display: none; max-width: 62ch; }
+.row.show-desc .label .desc { display: block; }
+.info { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 2px; margin-left: 4px; font-size: 13px; line-height: 1; opacity: .55; vertical-align: 1px; }
+.info:hover, .row.show-desc .info { opacity: 1; color: var(--accent); }
+.label .key, .card > .head h3 .key { opacity: 0; transition: opacity .15s; }
+.row:hover .label .key, .card > .head:hover h3 .key { opacity: 1; }
+
+/* Folding cards */
+.card.fold > .head { cursor: pointer; user-select: none; }
+.card.fold > .head::before { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; flex: none; margin: 0 2px 3px 0; }
+.card.fold.collapsed > .head::before { transform: rotate(-45deg); margin: 0 2px 0 0; }
+.card.fold.collapsed > :not(.head) { display: none; }
+.card.fold.collapsed > .head { border-bottom: 0; }
+.card.fold > .head:hover { background: var(--panel-2); }
+.card.fold > .head > div:first-of-type { flex: 1; min-width: 0; }
+.card.fold.collapsed > .head p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fold-state { font-size: 11.5px; padding: 2px 9px; border-radius: 99px; background: var(--panel-2); color: var(--muted); white-space: nowrap; border: 1px solid var(--line); }
+.fold-state.changed { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.fold-state.off { background: transparent; }
+
+/* A group switched off shows only its switch */
+.fields.off > :not(.master):not(.rows) { display: none; }
+.fields.off > .row.master { border-bottom: 0; }
+
+/* Sidebar */
+nav { padding: 18px 12px; }
+nav button { padding: 7px 10px; gap: 10px; color: var(--muted); font-weight: 500; }
+nav button:hover { background: var(--panel); color: var(--text); }
+nav button.active { background: var(--accent-soft); color: var(--accent); box-shadow: none; font-weight: 600; }
+.ico { width: 17px; height: 17px; flex: none; display: inline-grid; place-items: center; }
+.ico svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+nav .state { font-size: 10.5px; }
+nav button > span:not(.ico):not(.state) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+nav .sep { margin: 12px 10px; }
+.with-toc .toc a.on { font-weight: 600; }
+
+/* Terrain preview */
+.pv { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 18px; padding: 16px 18px; border-bottom: 1px solid var(--line); align-items: start; background: var(--panel); }
+.pv-box { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--panel-2); border: 1px solid var(--line); cursor: zoom-in; }
+.pv-box img { width: 100%; height: 100%; display: block; }
+.pv-box img:not([src]) { visibility: hidden; }
+.pv-busy { position: absolute; inset: 0; display: none; place-items: center; background: color-mix(in srgb, var(--panel) 45%, transparent); }
+.pv-box.loading .pv-busy { display: grid; }
+.pv-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pv-side h4 { margin: 0; font-size: 14px; }
+.pv-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.pv-row select { width: 100px; }
+.pv-row input[type=number] { width: 150px; }
+.pv-row label { display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.pv-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.pv-stats .stat { padding: 8px 12px; }
+.pv-stats .stat b { font-size: 15px; }
+.pv-note { font-size: 12px; color: var(--muted); margin: 0; }
+.pv-error { font-size: 12.5px; color: var(--bad); margin: 0; }
+.pv-full { display: block; width: 100%; border-radius: 10px; }
+.pf-save { display: flex; gap: 8px; padding: 12px 20px; }
+
+/* Heightmap painter */
+.modal.wide { width: min(1180px, 100%); max-height: 94vh; }
+.hm { display: grid; grid-template-columns: minmax(0, min(74vh, 680px)) minmax(260px, 1fr); gap: 18px; padding: 8px 20px 16px; align-items: start; }
+.hm-stage { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); touch-action: none; }
+.hm-canvas { width: 100%; height: 100%; display: block; cursor: none; }
+.hm-cursor { position: absolute; display: none; border: 2px solid #fffc; border-radius: 50%; box-shadow: 0 0 0 1px #0006; pointer-events: none; }
+.hm-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.hm-slider { display: grid; grid-template-columns: 90px 1fr; gap: 10px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.hm-readout { font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--muted); min-width: 110px; }
+.hm-sep { height: 1px; background: var(--line); margin: 4px 0; }
+.hm-side .pv-row input[type=text] { flex: 1; min-width: 120px; }
+@media (max-width: 900px) { .hm { grid-template-columns: 1fr; } }
+.pf-save input { flex: 1; }
+
 @media (max-width: 760px) {
+  .pv { grid-template-columns: 1fr; }
   .layout { grid-template-columns: 1fr; }
   nav { position: static; height: auto; display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 8px; }
   nav button { width: auto; white-space: nowrap; }
@@ -307,6 +438,8 @@ const UI = {
     start: "Save & generate", startNoSave: "Generate", stop: "Stop", running: "Generating {0} / {1}", elapsed: "{0}", queued: n => `${n} more in queue`,
     step: "Step: {0}", idle: "Not running", doneRuns: "Finished runs", exitCode: "exit code {0}", stopped: "stopped", ok: "done",
     attempt: "attempt {0}", rerolled: "requirements not met, another seed",
+    searchSettings: "Search settings", searchNone: "Nothing found", onThisPage: "On this page",
+    about: "What is this", nChanged: "{0} changed", defaults: "default",
     mapsTab: "Maps", mapsTitle: "Generated maps", mapsLead: "Every map in maps/ with what's on it. Filter by size and the monuments it must have.",
     mapsNoApi: "The map list needs the launcher: open the editor through CustomGeneratorLauncher.exe.", mapsEmpty: "No maps match.",
     allSizes: "All sizes", sizeSmall: "Small (up to 2500)", sizeMedium: "Medium (3000-4000)", sizeLarge: "Large (4500+)",
@@ -322,6 +455,20 @@ const UI = {
     serverSaved: "Server folder saved", noServer: "Set the Rust server folder above to generate maps.",
     log: "Log", unknownValue: "Unknown value, the mod ignores it", close: "Close", noPermission: "No permission to write the file",
     saveBlocked: "Can't save while a map is generating: the mod rewrites the config when it starts.",
+    pvTitle: "Terrain preview", pvRefresh: "Refresh", pvAuto: "Update on change", pvToRuns: "Generate this one", pvAdded: "Added to the maps on the Generate tab",
+    pvNote: "The land in a second, from your Rust server's own terrain code. Rivers, mountains, canyons, lakes and monuments come during the real generation.",
+    pvLand: "Land", pvWas: "was {0}%", pvIslands: "Islands added", pvVolcano: "Volcano", pvTime: "Took", pvNone: "none", pvOpen: "Preview", pvHeightmap: "Heightmap {0}",
+    upload: "Upload…", hmUploaded: "{0} uploaded: {1}", hmNone: "No files in heightmaps/ yet: upload a PNG or RAW.",
+    profiles: "Profiles", profileName: "Profile name", profileSave: "Save current settings", profileOverwrite: "Overwrite {0}?",
+    profileHint: "A profile is a named copy of all settings, kept in HarmonyConfig/profiles. Loading one shows what changes; save the config afterwards.",
+    noProfiles: "No profiles yet.", load: "Load", current: "last used", profileSaved: "Profile {0} saved", profileLoaded: "Profile {0} loaded. Review and save.",
+    hmDraw: "Draw…", hmDrawMap: "Draw a map", hmTitle: "Draw the terrain",
+    hmHelp: "Left button paints with the tool, right button (or Shift) lowers. Blue is sea, sand is the coast, then grass, rock and snow up high. Saving adapts the drawing for Rust: ocean along the map edge, smooth slopes, fine relief.",
+    hmRaise: "Raise", hmLower: "Lower", hmSmooth: "Smooth", hmFlatten: "Flatten", hmLand: "Land", hmSea: "Sea",
+    hmBrush: "Brush", hmStrength: "Strength", hmBrushM: "≈ {0} m on the map", hmHeight: "Height: {0} m", hmUndo: "Undo",
+    hmStart: "Start from:", hmIsland: "Island", hmRandom: "Random", hmEmpty: "Sea",
+    hmDetail: "Add fine relief", hmName: "File", hmPreview: "Preview with biomes", hmSave: "Save", hmGenerate: "Save & generate",
+    hmSaved: "{0} saved to heightmaps/ and set as the heightmap",
   },
   ru: {
     subtitleEmbedded: "Значения с последнего запуска сервера, {0}", subtitleFile: "Файл: {0}", subtitleApi: "Лаунчер · {0}",
@@ -364,6 +511,8 @@ const UI = {
     start: "Сохранить и сгенерировать", startNoSave: "Сгенерировать", stop: "Остановить", running: "Генерируется {0} / {1}", elapsed: "{0}", queued: n => `В очереди ещё: ${n}`,
     step: "Шаг: {0}", idle: "Не запущено", doneRuns: "Завершённые запуски", exitCode: "код выхода {0}", stopped: "остановлено", ok: "готово",
     attempt: "попытка {0}", rerolled: "требования не выполнены, другой сид",
+    searchSettings: "Поиск настроек", searchNone: "Ничего не найдено", onThisPage: "На странице",
+    about: "Что это", nChanged: "изменено: {0}", defaults: "по умолчанию",
     mapsTab: "Карты", mapsTitle: "Сгенерированные карты", mapsLead: "Все карты из maps/ и что на них есть. Фильтр по размеру и монументам, которые должны быть.",
     mapsNoApi: "Списку карт нужен лаунчер: откройте редактор через CustomGeneratorLauncher.exe.", mapsEmpty: "Подходящих карт нет.",
     allSizes: "Все размеры", sizeSmall: "Маленькие (до 2500)", sizeMedium: "Средние (3000-4000)", sizeLarge: "Большие (4500+)",
@@ -379,6 +528,20 @@ const UI = {
     serverSaved: "Папка сервера сохранена", noServer: "Укажите выше папку сервера Rust, чтобы генерировать карты.",
     log: "Лог", unknownValue: "Неизвестное значение, мод его игнорирует", close: "Закрыть", noPermission: "Нет разрешения на запись файла",
     saveBlocked: "Нельзя сохранять, пока генерируется карта: мод перезаписывает конфиг при запуске.",
+    pvTitle: "Превью рельефа", pvRefresh: "Обновить", pvAuto: "Обновлять при изменениях", pvToRuns: "Сгенерировать эту", pvAdded: "Добавлено в карты на вкладке «Генерация»",
+    pvNote: "Суша за секунду, тем же кодом рельефа, что у вашего сервера Rust. Реки, горы, каньоны, озёра и монументы появятся при настоящей генерации.",
+    pvLand: "Суша", pvWas: "было {0}%", pvIslands: "Добавлено островов", pvVolcano: "Вулкан", pvTime: "Заняло", pvNone: "нет", pvOpen: "Превью", pvHeightmap: "Карта высот {0}",
+    upload: "Загрузить…", hmUploaded: "{0} загружен: {1}", hmNone: "В heightmaps/ пока нет файлов: загрузите PNG или RAW.",
+    profiles: "Профили", profileName: "Имя профиля", profileSave: "Сохранить текущие настройки", profileOverwrite: "Перезаписать {0}?",
+    profileHint: "Профиль — именованная копия всех настроек, лежит в HarmonyConfig/profiles. При загрузке видно, что изменится; потом сохраните конфиг.",
+    noProfiles: "Профилей пока нет.", load: "Загрузить", current: "последний", profileSaved: "Профиль {0} сохранён", profileLoaded: "Профиль {0} загружен. Проверьте и сохраните.",
+    hmDraw: "Нарисовать…", hmDrawMap: "Нарисовать карту", hmTitle: "Рисование рельефа",
+    hmHelp: "Левая кнопка рисует выбранным инструментом, правая (или Shift) — опускает. Синее — море, песок — берег, дальше трава, скалы и снег наверху. При сохранении рисунок подгоняется под Rust: океан по краю карты, плавные склоны, мелкий рельеф.",
+    hmRaise: "Поднять", hmLower: "Опустить", hmSmooth: "Сгладить", hmFlatten: "Выровнять", hmLand: "Суша", hmSea: "Море",
+    hmBrush: "Кисть", hmStrength: "Сила", hmBrushM: "≈ {0} м на карте", hmHeight: "Высота: {0} м", hmUndo: "Отменить",
+    hmStart: "Начать с:", hmIsland: "Остров", hmRandom: "Случайно", hmEmpty: "Море",
+    hmDetail: "Добавить мелкий рельеф", hmName: "Файл", hmPreview: "Превью с биомами", hmSave: "Сохранить", hmGenerate: "Сохранить и сгенерировать",
+    hmSaved: "{0} сохранён в heightmaps/ и выбран картой высот",
   },
 };
 
@@ -436,6 +599,9 @@ const PRESETS = [
     desc: { en: "Less land split into more islands: terrain lowered 10 m, lower mountains, wide shallow water between islands.",
             ru: "Меньше суши и больше островов: рельеф опущен на 10 м, горы ниже, широкое мелководье между островами." },
     apply: c => c.set("Generator.LandShape", { LandLevel: -10, MountainHeight: 0.8, BeachHeight: 5, ShelfDepth: 12, FillInlandSea: false }) },
+  { title: { en: "Islands along the coast", ru: "Острова вдоль берега" },
+    desc: { en: "8 small islands, 120-230 m across, up to 400 m off the coast.", ru: "8 маленьких островов радиусом 120-230 м, до 400 м от берега." },
+    apply: c => c.set("Generator.LandShape", { IslandCount: 8, IslandSize: 180, IslandDistance: 400 }) },
   { title: { en: "Volcano", ru: "Вулкан" },
     desc: { en: "A 220 m volcano with a crater and bare rock slopes in the middle of the biggest landmass.",
             ru: "Вулкан 220 м с кратером и голыми скалистыми склонами в середине самого большого участка суши." },
@@ -590,8 +756,10 @@ function fieldRow(key, node, obj, onChange, ctx) {
   const get = () => obj[key] !== undefined ? obj[key] : node.default;
   const row = h("div", { class: "row", "data-key": key });
   const err = h("p", { class: "err" });
+  const info = node.description ? h("button", { type: "button", class: "info", title: node.description, "aria-label": t("about"),
+    onclick: () => row.classList.toggle("show-desc") }, "ⓘ") : null;
   const label = h("div", { class: "label" },
-    h("span", { class: "name" }, key), h("span", { class: "changed-dot", title: hasDefault ? t("defaultIs", JSON.stringify(node.default)) : null }),
+    h("span", { class: "name" }, ...nameParts(key, node)), info, h("span", { class: "changed-dot", title: hasDefault ? t("defaultIs", JSON.stringify(node.default)) : null }),
     node.description ? h("p", { class: "desc" }, node.description) : null, err);
   const control = h("div", { class: "control" });
   row.append(label, control);
@@ -649,6 +817,40 @@ function fieldRow(key, node, obj, onChange, ctx) {
       const update = () => { const v = String(get() || ""); preview.textContent = t("preview", v.replace("{0}", "4000").replace("{1}", "12345") + (v.endsWith(".map") ? "" : ".map")); };
       input.addEventListener("input", update); update();
       label.append(preview);
+    }
+    if (suggest === "heightmaps") {
+      const id = "hm-" + Math.random().toString(36).slice(2);
+      const list = h("datalist", { id });
+      const hint = h("div", { class: "hint" });
+      const files = () => S.extra.files?.heightmaps || [];
+      const draw = () => {
+        fill(list, files().map(f => h("option", { value: f })));
+        const v = String(get() || "");
+        hint.className = "hint" + (v && !files().includes(v) && !/[\\/]/.test(v) ? " warn" : "");
+        hint.textContent = v && !files().includes(v) && !/[\\/]/.test(v) ? t("fileMissing", v) : !files().length && API ? t("hmNone") : "";
+      };
+      input.setAttribute("list", id);
+      input.addEventListener("input", draw);
+      control.append(list);
+      if (API) {
+        const pick = h("input", { type: "file", accept: ".png,.raw,.r16", hidden: true, onchange: async () => {
+          const file = pick.files[0];
+          pick.value = "";
+          if (!file) return;
+          try {
+            const res = await fetch("/api/heightmap?name=" + encodeURIComponent(file.name), { method: "PUT", body: file, headers: { "X-CG": "1" } });
+            const d = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(d.error || res.statusText);
+            S.extra.files = { ...S.extra.files, heightmaps: d.files };
+            input.value = d.name; set(d.name); draw();
+            toast(t("hmUploaded", d.name, `${d.width}×${d.height}, ${d.bits} bit`));
+          } catch (e) { toast(e.message); }
+        } });
+        control.append(h("button", { type: "button", class: "btn small", onclick: () => pick.click() }, t("upload")),
+          h("button", { type: "button", class: "btn small", onclick: openPainter }, "✎ " + t("hmDraw")), pick);
+      }
+      label.append(hint);
+      draw();
     }
     if (suggest === "customFiles") {
       const files = S.extra.files?.custom || [];
@@ -724,6 +926,96 @@ function dictInput(initial, valueNode, onChange, known) {
   return wrap;
 }
 
+/* ---------- readable names ---------- */
+// Fields named in code (no localized key) get a readable label; the key stays visible in mono, as the wiki and the JSON use it
+const LABELS = {
+  ShouldChange: ["Change this (master switch)", "Менять (главный переключатель)"],
+  Enabled: ["Enabled", "Включено"], Generate: ["Generate", "Генерировать"],
+  Road: ["Roads", "Дороги"], Rail: ["Rails", "Железная дорога"], UniqueEnviroment: ["Unique environment", "Уникальное окружение"],
+  GenerateRing: ["Ring on any map size", "Кольцо на любом размере карты"], GenerateSideMonuments: ["Monuments along it", "Монументы вдоль"],
+  GenerateSideObjects: ["Roadside objects", "Придорожные объекты"],
+  GenerateOasis: ["Oases", "Оазисы"], GenerateCanyons: ["Canyons", "Каньоны"], GenerateLakes: ["Lakes", "Озёра"],
+  Description: ["Step name", "Название шага"], Folder: ["Folder", "Папка"], OverrideFolder: ["Another folder", "Другая папка"],
+  MinWorldSize: ["Min map size", "Мин. размер карты"], TargetCount: ["How many", "Сколько"],
+  IgnoreWorldSizeMultiplier: ["Exact count (ignore map size)", "Точное число (без учёта размера карты)"],
+  MinDistanceSameType: ["Min distance to the same kind (m)", "Мин. расстояние до таких же (м)"],
+  MinDistanceDifferentType: ["Min distance to other kinds (m)", "Мин. расстояние до других (м)"],
+  distanceSame: ["Placement near the same kind", "Размещение рядом с такими же"], distanceDifferent: ["Placement near other kinds", "Размещение рядом с другими"],
+  IncludePrefabs: ["Only these prefabs", "Только эти префабы"], ExcludePrefabs: ["Never these prefabs", "Без этих префабов"],
+  PrefabCopies: ["Copies per prefab", "Копий на префаб"], Filter: ["Where it can stand", "Где может стоять"],
+  SplatType: ["Ground textures", "Текстуры земли"], BiomeType: ["Biomes", "Биомы"],
+  TopologyAll: ["Topology: all of", "Топология: все из"], TopologyAny: ["Topology: any of", "Топология: любая из"], TopologyNot: ["Topology: none of", "Топология: ни одной из"],
+  Name: ["Name", "Название"], File: ["File", "Файл"], Count: ["How many", "Сколько"], Radius: ["Pad radius (m)", "Радиус площадки (м)"],
+  Blend: ["Blend ring (m)", "Переходное кольцо (м)"], HeightMode: ["Terrain", "Рельеф"],
+  MinHeight: ["Min height (m)", "Мин. высота (м)"], MaxHeight: ["Max height (m)", "Макс. высота (м)"],
+  MaxHeightDifference: ["Max height difference (m)", "Макс. перепад высот (м)"], MinDistanceToMonuments: ["Min distance to monuments (m)", "Мин. расстояние до монументов (м)"],
+  RandomRotation: ["Random rotation", "Случайный поворот"], CopySplat: ["Copy ground textures", "Копировать текстуры земли"],
+  CopyTopology: ["Copy topology", "Копировать топологию"], CopyAlpha: ["Copy terrain holes", "Копировать дыры в рельефе"],
+  MapMarker: ["Name on the in-game map", "Подпись на карте в игре"], Monuments: ["Monuments", "Монументы"],
+  OnMissing: ["When something is missing", "Если чего-то нет"], MaxAttempts: ["Attempts", "Попыток"],
+  Arid: ["Arid", "Пустыня"], Temperate: ["Temperate", "Умеренный"], Tundra: ["Tundra", "Тундра"], Arctic: ["Arctic", "Арктика"], Jungle: ["Jungle", "Джунгли"],
+};
+function labelOf(key, node) {
+  const l = node && node["x-name"] === key ? LABELS[key] : null;
+  return l ? l[S.lang === "ru" ? 1 : 0] : key;
+}
+// The readable name and, when it differs, the key it has in the JSON
+function nameParts(key, node) {
+  const label = labelOf(key, node);
+  return label === key ? [key] : [label, h("span", { class: "key" }, key)];
+}
+
+/* ---------- folding and topics ---------- */
+// Settings that differ from their defaults, through nested groups (lists don't count)
+function changedCount(node, obj, keys) {
+  let n = 0;
+  for (const key of keys || Object.keys(node.properties || {})) {
+    const child = node.properties[key];
+    if (!child || key.startsWith("$") || child.readOnly) continue;
+    if (isGroup(child)) n += changedCount(child, obj?.[key] || {});
+    else if (!isObjectList(child) && child.default !== undefined && obj && key in obj && !same(obj[key], child.default)) n++;
+  }
+  return n;
+}
+
+// A card that folds to its header. state() returns [text, class] for the chip on the right
+function foldable(card, id, state) {
+  const head = card.querySelector(":scope > .head");
+  const chip = h("span", { class: "fold-state" });
+  head.append(chip);
+  card.classList.add("fold");
+  const update = () => { const [text, cls] = state(); chip.textContent = text || ""; chip.hidden = !text; chip.className = "fold-state " + (cls || ""); };
+  const saved = store.get("fold." + id, null);
+  // First time: open where something is changed, folded where everything is default
+  card.classList.toggle("collapsed", saved === null ? state()[1] !== "changed" : !saved);
+  head.addEventListener("click", e => {
+    if (e.target.closest("button, a, input, select")) return;
+    const open = card.classList.toggle("collapsed") === false;
+    store.set("fold." + id, open);
+  });
+  card.updateFold = update;
+  update();
+  return card;
+}
+function foldState(n, off) {
+  return off ? [t("off"), "off"] : n ? [t("nChanged", n), "changed"] : [t("defaults"), ""];
+}
+function openFolds(el) {
+  for (let c = el?.closest(".card.collapsed"); c; c = c.parentElement?.closest(".card.collapsed")) c.classList.remove("collapsed");
+}
+
+// Long sections are split into topic cards; fields are code names (x-name), groups can go inside a topic
+const TOPICS = {
+  Generator: [
+    { id: "land", title: ["Land and terrain", "Суша и рельеф"], fields: ["LandShape"], inline: true },
+    { id: "rivers", title: ["Rivers", "Реки"], fields: ["RemoveRivers", "RiverWidthScale", "MaxRivers", "RiverSpacing"] },
+    { id: "roads", title: ["Roads and rails", "Дороги и ЖД"], fields: ["Road", "Rail", "RemoveCarWrecks", "AllowRoadBuild", "RemoveRailLinks"] },
+    { id: "under", title: ["Underground and powerlines", "Подземка и ЛЭП"], fields: ["RemoveTunnelsEntrances", "RemoveTunnels", "RemovePowerlines"] },
+    { id: "nature", title: ["Nature and decor", "Природа и декор"], fields: ["UniqueEnviroment", "DecorDensity", "RemoveGrass", "BlockedPrefabs"] },
+    { id: "percent", title: ["Tiers and biomes", "Тиры и биомы"], fields: ["ModifyPercentages", "Tier", "Biom"] },
+  ],
+};
+
 /* ---------- groups and lists ---------- */
 // rowsCard: plain rows go into their own card, groups and lists follow as separate cards (section level)
 function renderFields(node, obj, onAnyChange, rowsCard, ctx) {
@@ -731,26 +1023,54 @@ function renderFields(node, obj, onAnyChange, rowsCard, ctx) {
   const rows = rowsCard ? h("div", { class: "fields" }) : fields;
   if (rowsCard) fields.append(h("section", { class: "card rows" }, rows));
   const master = masterKey(node, obj);
+  const topicCards = [];
   const applyMaster = () => {
     const off = master !== undefined && obj[master] === false;
     fields.classList.toggle("off", off);
     rows.classList.toggle("off", off);
   };
-  const notify = () => { applyMaster(); onAnyChange && onAnyChange(); };
+  const notify = () => { applyMaster(); topicCards.forEach(c => c.updateFold()); onAnyChange && onAnyChange(); };
+
+  // Topic cards (section level only): each field goes to the topic that lists its code name
+  const topics = rowsCard ? TOPICS[node["x-name"]] : null;
+  const home = {};
+  if (topics) for (const topic of topics) {
+    const keys = topic.fields.map(n => keyOf(node, n)).filter(Boolean);
+    if (!keys.length) continue;
+    if (topic.inline) { for (const k of keys) home[k] = fields; continue; }
+    const body = h("div", { class: "fields" });
+    const card = h("section", { class: "card topic", "data-key": "@" + topic.id },
+      h("div", { class: "head" }, h("div", {}, h("h3", {}, topic.title[S.lang === "ru" ? 1 : 0]))), body);
+    foldable(card, S.section + "/@" + topic.id, () => foldState(changedCount(node, obj, keys)));
+    topicCards.push(card);
+    for (const k of keys) home[k] = body;
+  }
+  // Topic cards keep the order of the TOPICS list, inline groups take their place in it
+  if (topics) for (const topic of topics) {
+    const keys = topic.fields.map(n => keyOf(node, n)).filter(Boolean);
+    if (!keys.length) continue;
+    if (topic.inline) fields.append(h("div", { class: "slot", "data-slot": keys[0] }));
+    else fields.append(topicCards.find(c => c.dataset.key === "@" + topic.id));
+  }
 
   for (const [key, child] of Object.entries(node.properties)) {
     if (key.startsWith("$") || (child.readOnly && !(key in obj))) continue;
+    const target = home[key];
+    let el;
     if (isGroup(child)) {
       if (typeof obj[key] !== "object" || obj[key] === null) obj[key] = defaultsFor(child);
-      fields.append(groupCard(key, child, obj[key], notify, ctx));
+      el = groupCard(key, child, obj[key], notify, ctx);
     } else if (isObjectList(child)) {
       if (!Array.isArray(obj[key])) obj[key] = [];
-      fields.append(listCard(key, child, obj[key], notify));
+      el = listCard(key, child, obj[key], notify);
     } else {
-      const row = fieldRow(key, child, obj, notify, ctx);
-      if (key === master) row.classList.add("master");
-      rows.append(row);
+      el = fieldRow(key, child, obj, notify, ctx);
+      if (key === master) el.classList.add("master");
+      if (!target) { rows.append(el); continue; }
     }
+    const slot = target === fields ? fields.querySelector(`.slot[data-slot="${CSS.escape(key)}"]`) : null;
+    if (slot) slot.replaceWith(el);
+    else (target || fields).append(el);
   }
   if (rowsCard && !rows.childElementCount) fields.firstElementChild.remove();
   applyMaster();
@@ -758,13 +1078,14 @@ function renderFields(node, obj, onAnyChange, rowsCard, ctx) {
 }
 
 function groupCard(title, node, obj, onAnyChange, ctx) {
-  const head = h("div", { class: "head" }, h("div", {}, h("h3", {}, title), node.description ? h("p", {}, node.description) : null));
+  const head = h("div", { class: "head" }, h("div", {}, h("h3", {}, ...nameParts(title, node)), node.description ? h("p", {}, node.description) : null));
   let sum, bar;
   if (node["x-sum"]) {
     sum = h("span", { class: "sum" });
     head.append(sum);
   }
-  const fields = renderFields(node, obj, () => { updateSum(); bar && bar.update(); onAnyChange && onAnyChange(); }, false, ctx);
+  let preview = null;
+  const fields = renderFields(node, obj, () => { updateSum(); bar && bar.update(); card.updateFold && card.updateFold(); preview && preview.schedule(); onAnyChange && onAnyChange(); }, false, ctx);
   const updateSum = () => {
     if (!sum) return;
     const spec = node["x-sum"];
@@ -774,11 +1095,13 @@ function groupCard(title, node, obj, onAnyChange, ctx) {
     sum.textContent = ok ? t("sum", total) : t("sumBad", total, spec.target);
     sum.classList.toggle("off", !ok);
   };
-  const card = h("section", { class: "card" }, head);
+  const card = h("section", { class: "card", "data-key": title }, head);
   if (node["x-sum"]) { bar = percentBar(node, obj, fields); card.append(bar.el); }
+  if (API && node["x-name"] === "LandShape") { preview = previewPanel(); card.append(preview.el); }
   card.append(fields);
   updateSum();
-  return card;
+  const master = masterKey(node, obj);
+  return foldable(card, S.section + "/" + title, () => foldState(changedCount(node, obj), master !== undefined && obj[master] === false));
 }
 
 function sumKeys(node) {
@@ -838,7 +1161,7 @@ function percentBar(node, obj, fields) {
 function listCard(title, node, list, onAnyChange) {
   const items = h("div", { class: "items", "data-empty": t("empty") });
   const count = h("span", { class: "badge" });
-  const card = h("section", { class: "card list" }, h("div", { class: "head" }, h("div", {}, h("h3", {}, title), node.description ? h("p", {}, node.description) : null), count));
+  const card = h("section", { class: "card list", "data-key": title }, h("div", { class: "head" }, h("div", {}, h("h3", {}, ...nameParts(title, node)), node.description ? h("p", {}, node.description) : null), count));
   const addable = !!node["x-addable"];
   let filter = "";
 
@@ -858,6 +1181,8 @@ function listCard(title, node, list, onAnyChange) {
   if (tools.childElementCount) card.append(tools);
   card.append(items);
   draw();
+  foldable(card, S.section + "/" + title, () => [null, "changed"]);
+  card.classList.toggle("collapsed", store.get("fold." + S.section + "/" + title, true) === false);
   return card;
 }
 
@@ -970,6 +1295,7 @@ function render() {
     hasConfig ? h("span", { class: "pill", id: "errors", hidden: true }) : null,
     hasConfig ? h("span", { class: "status", id: "status" }) : null,
     hasConfig ? h("button", { type: "button", class: "btn ghost", onclick: openPresets }, "✦ " + t("presets")) : null,
+    API && hasConfig ? h("button", { type: "button", class: "btn ghost", onclick: openProfiles }, "▤ " + t("profiles")) : null,
     langNode ? h("select", { "aria-label": t("language"), title: t("language"), onchange: e => {
       S.config[LANG_KEY] = e.target.value; S.lang = e.target.value; changed(); render(); toast(t("bannerLang"));
     } }, (langNode.enum || ["en", "ru"]).map(v => h("option", { value: v, selected: v === S.config[LANG_KEY] }, v.toUpperCase()))) : null,
@@ -985,13 +1311,28 @@ function render() {
   drawNav(); drawSection(); updateTop();
 }
 
+const ICONS = {
+  [TAB_GENERATE]: '<path d="M7 4.5v15l12-7.5z"/>',
+  [TAB_LAST]: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  [TAB_MAPS]: '<path d="M3.5 6.5l5.5-2.5 6 2.5 5.5-2.5v13.5l-5.5 2.5-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
+  mapSettings: '<path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/>',
+  MapImage: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 15.5l-5-5-9.5 9"/>',
+  Generator: '<path d="M2.5 19.5l6.5-11 4 6.5 2.5-3.5 6 8z"/>',
+  Swap: '<path d="M4 8.5h14l-3.5-3.5M20 15.5H6l3.5 3.5"/>',
+  Monuments: '<path d="M4 20h16M6 20v-8M10 20v-8M14 20v-8M18 20v-8M3 12l9-6.5 9 6.5z"/>',
+  CustomMonuments: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M12 8.5v7M8.5 12h7"/>',
+  Requirements: '<path d="M10 7h10M10 12h10M10 17h10"/><path d="M4 7l1.3 1.3L7.5 6M4 12l1.3 1.3 2.2-2.3M4 17l1.3 1.3 2.2-2.3"/>',
+};
+const icon = id => ICONS[id] ? h("span", { class: "ico", html: `<svg viewBox="0 0 24 24">${ICONS[id]}</svg>` }) : h("span", { class: "ico" });
+
 function drawNav() {
   const nav = document.getElementById("nav");
   const tab = (key, label, state) => h("button", { type: "button", class: key === S.section ? "active" : "", "data-key": key,
-    onclick: () => { S.section = key; drawNav(); drawSection(); window.scrollTo(0, 0); } }, h("span", {}, label), state);
+    onclick: () => go(key) }, icon(S.schema?.properties[key]?.["x-name"] || key), h("span", {}, label), state);
   const genState = generating() ? h("span", { class: "state busy" }, "●") : null;
   fill(nav,
-    tab(TAB_GENERATE, "▶ " + t("generate"), genState),
+    S.config ? searchBox() : null,
+    tab(TAB_GENERATE, t("generate"), genState),
     tab(TAB_LAST, t("lastRun"), S.extra.lastRun ? h("span", { class: "state" }, S.extra.lastRun.size) : null),
     tab(TAB_MAPS, t("mapsTab"), null),
     sections().length ? h("div", { class: "sep" }) : null,
@@ -1002,6 +1343,79 @@ function drawNav() {
     }),
     h("div", { class: "foot" }, S.config?.Version ? t("version", S.config.Version) : ""));
 }
+// Switch section; the hash keeps it, so back/forward and reload work
+function go(key, focusPath) {
+  if (S.section !== key) {
+    S.section = key;
+    const hash = "#" + encodeURIComponent(key);
+    if (location.hash !== hash) history.pushState(null, "", hash);
+    drawNav(); drawSection();
+  }
+  if (focusPath) reveal(focusPath); else window.scrollTo(0, 0);
+}
+window.addEventListener("popstate", () => {
+  const key = decodeURIComponent(location.hash.slice(1));
+  if (key && key !== S.section && S.schema && (S.schema.properties[key] || [TAB_GENERATE, TAB_LAST, TAB_MAPS].includes(key))) { S.section = key; drawNav(); drawSection(); }
+});
+
+// Every field of the config, for the search: section, path of keys, readable name, description
+function searchIndex() {
+  const out = [];
+  const walk = (section, node, path, trail) => {
+    for (const [key, child] of Object.entries(node.properties || {})) {
+      if (key.startsWith("$") || child.readOnly) continue;
+      const label = labelOf(key, child), p = [...path, key], tr = [...trail, label];
+      out.push({ section, path: p, label, key, trail: tr, desc: child.description || "", text: (label + " " + key + " " + (child.description || "")).toLowerCase() });
+      if (isGroup(child)) walk(section, child, p, tr);
+    }
+  };
+  for (const [key, node] of sections()) walk(key, node, [], [key]);
+  return out;
+}
+
+function searchBox() {
+  let index = null, sel = 0, items = [];
+  const results = h("div", { class: "results", hidden: true });
+  const input = h("input", { type: "search", placeholder: t("searchSettings"), "aria-label": t("searchSettings"), spellcheck: false, id: "search" });
+  const pick = item => { input.value = ""; results.hidden = true; input.blur(); go(item.section, item.path); };
+  const draw = () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q) { results.hidden = true; return; }
+    index ??= searchIndex();
+    const words = q.split(/\s+/);
+    items = index.filter(x => words.every(w => x.text.includes(w)))
+      .sort((a, b) => (b.label.toLowerCase().includes(q) - a.label.toLowerCase().includes(q)) || a.path.length - b.path.length).slice(0, 12);
+    sel = Math.min(sel, Math.max(0, items.length - 1));
+    fill(results, ...(items.length ? items.map((x, i) => h("button", { type: "button", class: i === sel ? "sel" : "", onmousedown: e => { e.preventDefault(); pick(x); } },
+      x.label, h("small", {}, x.trail.slice(0, -1).join(" › ") + (x.desc ? " · " + x.desc : "")))) : [h("div", { class: "none" }, t("searchNone"))]));
+    results.hidden = false;
+  };
+  input.addEventListener("input", () => { sel = 0; draw(); });
+  input.addEventListener("focus", draw);
+  input.addEventListener("blur", () => setTimeout(() => results.hidden = true, 100));
+  input.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); sel = (sel + (e.key === "ArrowDown" ? 1 : -1) + items.length) % Math.max(1, items.length); draw(); }
+    else if (e.key === "Enter" && items[sel]) pick(items[sel]);
+    else if (e.key === "Escape") { input.value = ""; draw(); input.blur(); }
+  });
+  return h("div", { class: "search" }, input, h("kbd", {}, "Ctrl K"), results);
+}
+
+// Scroll to a field by its key path and make it blink
+function reveal(path) {
+  let scope = document.getElementById("main"), el = null;
+  for (const [i, key] of path.entries()) {
+    const sel = i === path.length - 1 ? `[data-key="${CSS.escape(key)}"]:not(.topic)` : `section[data-key="${CSS.escape(key)}"]`;
+    el = scope.querySelector(sel);
+    if (!el) break;
+    scope = el;
+  }
+  if (!el) return;
+  openFolds(el);
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+
 function updateNav() {
   for (const button of document.querySelectorAll("nav button")) {
     const key = button.dataset.key, node = S.schema?.properties[key], state = button.querySelector(".state");
@@ -1028,7 +1442,27 @@ function drawSection() {
     if (list) content.push(customFilesCard(S.config[key], list));
   }
   if (node["x-name"] === "Swap") content.push(swapFilesCard());
-  main.replaceChildren(...content);
+  // Contents: the cards of this section, for long pages on wide screens
+  const cards = [...fields.children].filter(el => el.matches("section.card[data-key]"));
+  const toc = h("aside", { class: "toc" });
+  if (cards.length > 1) {
+    toc.append(h("b", {}, t("onThisPage")));
+    for (const card of cards) {
+      const title = card.querySelector(".head h3")?.firstChild?.textContent || card.dataset.key;
+      toc.append(h("a", { href: "#", onclick: e => { e.preventDefault(); card.classList.remove("collapsed"); card.scrollIntoView({ behavior: "smooth", block: "start" }); } }, title));
+    }
+  }
+  main.replaceChildren(h("div", { class: "page" + (cards.length > 1 ? " with-toc" : "") }, h("div", {}, ...content), toc));
+  // The entry of the card at the top of the screen is highlighted
+  if (cards.length > 1 && "IntersectionObserver" in window) {
+    const links = [...toc.querySelectorAll("a")], visible = new Set();
+    const spy = new IntersectionObserver(entries => {
+      for (const e of entries) e.isIntersecting ? visible.add(e.target) : visible.delete(e.target);
+      const first = cards.findIndex(c => visible.has(c));
+      links.forEach((a, i) => a.classList.toggle("on", i === first));
+    }, { rootMargin: "-70px 0px -55% 0px" });
+    cards.forEach(c => spy.observe(c));
+  }
 }
 
 /* ---------- last run ---------- */
@@ -1125,6 +1559,419 @@ function worldCard(w) {
   return h("section", { class: "card" }, h("div", { class: "head" }, h("h3", {}, t("world"))), body);
 }
 
+/* ---------- terrain preview ---------- */
+// Value of a field by code names, its default when the config doesn't have it
+function setting(path) {
+  const at = locate(path);
+  return at ? at.obj[at.key] ?? at.node.default : undefined;
+}
+
+// What /api/preview needs: the land shape by code names, tiers and biomes when they're changed
+function previewParams(size, seed) {
+  const at = locate("Generator.LandShape");
+  const shape = {};
+  if (at && isGroup(at.node)) for (const [k, n] of Object.entries(at.node.properties)) shape[n["x-name"] || k] = at.obj[at.key]?.[k] ?? n.default;
+  const p = { size, seed, shape };
+  if (setting("Generator.ModifyPercentages")) {
+    p.tiers = ["Tier0", "Tier1", "Tier2"].map(n => setting("Generator.Tier." + n));
+    p.biomes = ["Arid", "Temperate", "Tundra", "Arctic"].map(n => setting("Generator.Biom." + n));
+    p.jungle = setting("Generator.Biom.Jungle");
+  }
+  return p;
+}
+
+const pv = { size: store.get("pvSize", null), seed: store.get("pvSeed", null), auto: store.get("pvAuto", true) };
+
+function previewStats(d) {
+  const tile = (k, v) => h("div", { class: "stat" }, h("small", {}, k), h("b", {}, v));
+  return [
+    tile(t("pvLand") + (d.landBefore !== undefined && Math.abs(d.landBefore - d.land) >= 0.1 ? " · " + t("pvWas", d.landBefore) : ""), `${d.land}%`),
+    d.islands ? tile(t("pvIslands"), d.islands) : null,
+    d.volcano ? tile(t("pvVolcano"), `${d.volcano.x}, ${d.volcano.z}`) : null,
+    tile(t("pvTime"), `${(d.ms / 1000).toFixed(1)} s`),
+  ];
+}
+
+function previewImage(src, title) {
+  modal(title, h("div", { style: "padding: 4px 20px 12px" }, h("img", { class: "pv-full", src, alt: title })));
+}
+
+// Panel on top of the land shape card: the map at the chosen size and seed, redrawn when a field changes
+function previewPanel() {
+  const first = gen.runs[0] || { size: 4000, seed: randomSeed() };
+  let size = pv.size ?? first.size, seed = pv.seed ?? first.seed;
+  let timer = null, busy = false, again = false, started = false;
+  const img = h("img", { alt: t("pvTitle") });
+  const box = h("div", { class: "pv-box", onclick: () => img.src && previewImage(img.src, `${size} / ${seed}`) }, img, h("div", { class: "pv-busy" }, h("span", { class: "spinner" })));
+  const stats = h("div", { class: "pv-stats" });
+  const error = h("p", { class: "pv-error", hidden: true });
+  const keep = () => { store.set("pvSize", size); store.set("pvSeed", seed); };
+
+  const run = async () => {
+    if (busy) { again = true; return; }
+    busy = true; started = true; box.classList.add("loading");
+    try {
+      const d = await api("POST", "/api/preview", JSON.stringify(previewParams(size, seed)));
+      img.src = d.image; error.hidden = true;
+      fill(stats, ...previewStats(d), d.heightmap ? h("div", { class: "stat" }, h("small", {}, t("pvHeightmap", "")), h("b", {}, d.heightmap)) : null);
+    } catch (e) { error.textContent = e.message; error.hidden = false; }
+    busy = false; box.classList.remove("loading");
+    if (again) { again = false; run(); }
+  };
+  const schedule = () => { if (!pv.auto || !started) return; clearTimeout(timer); timer = setTimeout(run, 300); };
+
+  const sizeSel = h("select", { "aria-label": t("size"), onchange: e => { size = Number(e.target.value); keep(); run(); } },
+    [...new Set([...SIZES, size])].sort((a, b) => a - b).map(v => h("option", { value: v, selected: v === size }, v)));
+  const seedIn = h("input", { type: "number", min: 0, value: seed, "aria-label": t("seed"), onchange: e => { seed = Number(e.target.value) || 0; keep(); run(); } });
+  const auto = h("input", { type: "checkbox", checked: pv.auto, onchange: e => { pv.auto = e.target.checked; store.set("pvAuto", pv.auto); } });
+  const el = h("div", { class: "pv" }, box,
+    h("div", { class: "pv-side" },
+      h("h4", {}, t("pvTitle")),
+      h("div", { class: "pv-row" }, sizeSel, seedIn,
+        h("button", { type: "button", class: "btn small", title: t("random"), "aria-label": t("random"), onclick: () => { seed = randomSeed(); seedIn.value = seed; keep(); run(); } }, "🎲"),
+        h("button", { type: "button", class: "btn small", onclick: run }, t("pvRefresh"))),
+      h("div", { class: "pv-row" }, h("label", {}, h("span", { class: "switch" }, auto, h("span")), t("pvAuto")),
+        h("button", { type: "button", class: "btn small ghost", onclick: () => {
+          if (!gen.runs.some(r => r.size === size && r.seed === seed)) gen.runs.push({ size, seed });
+          saveGen(); toast(t("pvAdded"));
+        } }, "+ " + t("pvToRuns")),
+        h("button", { type: "button", class: "btn small ghost", onclick: openPainter }, "✎ " + t("hmDrawMap"))),
+      stats, error, h("p", { class: "pv-note" }, t("pvNote"))));
+  // First picture once the panel is on screen (the card may start folded)
+  const spy = new IntersectionObserver(entries => { if (entries.some(e => e.isIntersecting) && !started) { spy.disconnect(); run(); } });
+  setTimeout(() => spy.observe(box));
+  return { el, schedule, run };
+}
+
+// The preview of one map of the Generate list, in a dialog
+async function previewRun(run) {
+  const body = h("div", { style: "padding: 4px 20px 12px" }, h("div", { class: "pv-box loading", style: "cursor:default" }, h("div", { class: "pv-busy" }, h("span", { class: "spinner" }))));
+  modal(`${t("pvTitle")} · ${run.size} / ${run.seed}`, body);
+  try {
+    const d = await api("POST", "/api/preview", JSON.stringify(previewParams(run.size, run.seed)));
+    fill(body, h("img", { class: "pv-full", src: d.image, alt: `${run.size} / ${run.seed}` }), h("div", { class: "pv-stats", style: "margin-top:12px" }, ...previewStats(d)),
+      h("p", { class: "pv-note", style: "margin-top:10px" }, t("pvNote")));
+  } catch (e) { fill(body, h("p", { class: "pv-error" }, e.message)); }
+}
+
+/* ---------- heightmap painter ---------- */
+// Draw the terrain in meters (sea level 0) on a 512 grid; saving "adapts" it for Rust (ocean at the map edge, brush
+// marks smoothed, fine relief added) and uploads a 16-bit PNG to heightmaps/, black = HM_MIN, white = HM_MAX
+const HM_N = 512, HM_MIN = -60, HM_MAX = 240, HM_DRAFT = "hmDraft";
+
+function hmNoise(seed) {
+  // A 64x64 grid that wraps around, so any coordinate is seamless
+  const g = new Float32Array(64 * 64);
+  let s = (seed >>> 0) || 1;
+  for (let i = 0; i < g.length; i++) { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; g[i] = ((s >>> 0) % 10000) / 10000 - 0.5; }
+  const at = (x, y, f) => {
+    const gx = x * f, gy = y * f, ix = Math.floor(gx), iy = Math.floor(gy);
+    const x0 = ((ix % 64) + 64) % 64, y0 = ((iy % 64) + 64) % 64, x1 = (x0 + 1) % 64, y1 = (y0 + 1) % 64;
+    let fx = gx - ix, fy = gy - iy;
+    fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+    const a = g[y0 * 64 + x0], b = g[y0 * 64 + x1], c = g[y1 * 64 + x0], d = g[y1 * 64 + x1];
+    return (a + (b - a) * fx) * (1 - fy) + (c + (d - c) * fx) * fy;
+  };
+  return (x, y) => at(x, y, 5) * 0.55 + at(x, y, 13) * 0.3 + at(x, y, 31) * 0.15;
+}
+
+const hmTemplates = {
+  sea: () => new Float32Array(HM_N * HM_N).fill(-35),
+  island: () => {
+    const out = new Float32Array(HM_N * HM_N), n = hmNoise(Math.random() * 1e9);
+    for (let z = 0; z < HM_N; z++) for (let x = 0; x < HM_N; x++) {
+      const u = x / HM_N, v = z / HM_N, r = Math.hypot(u - 0.5, v - 0.5) + n(u, v) * 0.12;
+      out[z * HM_N + x] = r < 0.33 ? 4 + 70 * Math.pow(1 - r / 0.33, 1.5) + n(v, u) * 30 : -6 - 40 * Math.min(1, (r - 0.33) / 0.12);
+    }
+    return out;
+  },
+  random: () => {
+    const out = new Float32Array(HM_N * HM_N), n = hmNoise(Math.random() * 1e9);
+    for (let z = 0; z < HM_N; z++) for (let x = 0; x < HM_N; x++) out[z * HM_N + x] = n(x / HM_N, z / HM_N) * 260 + 8;
+    return out;
+  },
+};
+
+function hmColor(v) {
+  if (v <= 0) { const t = Math.sqrt(Math.min(1, -v / 60)); return [96 + (28 - 96) * t, 170 + (62 - 170) * t, 190 + (98 - 190) * t]; }
+  const stops = [[0, [222, 205, 160]], [3, [120, 160, 84]], [60, [98, 128, 70]], [120, [132, 120, 90]], [180, [140, 134, 124]], [215, [236, 240, 244]]];
+  for (let i = 1; i < stops.length; i++) if (v <= stops[i][0]) {
+    const [a, ca] = stops[i - 1], [b, cb] = stops[i], t = (v - a) / (b - a);
+    return ca.map((c, k) => c + (cb[k] - c) * t);
+  }
+  return stops.at(-1)[1];
+}
+
+// Ocean at the map edge, brush marks smoothed, fine relief: what Rust needs from a hand-drawn map
+function hmAdapt(src, detail) {
+  const n = HM_N, out = Float32Array.from(src), tmp = new Float32Array(n * n);
+  for (let pass = 0; pass < 2; pass++) {
+    for (let z = 0; z < n; z++) for (let x = 0; x < n; x++) {
+      let s = 0, c = 0;
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, zz = z + dz;
+        if (xx >= 0 && zz >= 0 && xx < n && zz < n) { s += out[zz * n + xx]; c++; }
+      }
+      tmp[z * n + x] = s / c;
+    }
+    out.set(tmp);
+  }
+  const noise = hmNoise(1234567);
+  for (let z = 0; z < n; z++) for (let x = 0; x < n; x++) {
+    const i = z * n + x, u = x / n, v = z / n;
+    if (detail && out[i] > 1) out[i] += noise(u * 3, v * 3) * Math.min(1, out[i] / 15) * 18;
+    // The outer 3% is deep sea, fading into the drawing over the next 4%
+    const edge = Math.min(u, v, 1 - u, 1 - v), t = Math.max(0, Math.min(1, (edge - 0.03) / 0.04));
+    const k = t * t * (3 - 2 * t);
+    out[i] = Math.min(out[i], -40) * (1 - k) + out[i] * k;
+  }
+  return out;
+}
+
+const hmCrc = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; table[i] = c >>> 0; }
+  return bytes => { let c = 0xffffffff; for (const b of bytes) c = table[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+})();
+
+// 16-bit grayscale PNG, picture top = north
+async function hmPng(heights) {
+  const n = HM_N, raw = new Uint8Array((n * 2 + 1) * n);
+  for (let y = 0; y < n; y++) {
+    const z = n - 1 - y;
+    for (let x = 0; x < n; x++) {
+      const v = Math.round(Math.max(0, Math.min(1, (heights[z * n + x] - HM_MIN) / (HM_MAX - HM_MIN))) * 65535);
+      raw[y * (n * 2 + 1) + 1 + x * 2] = v >> 8; raw[y * (n * 2 + 1) + 2 + x * 2] = v & 255;
+    }
+  }
+  const data = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate"))).arrayBuffer());
+  const chunk = (type, body) => {
+    const out = new Uint8Array(12 + body.length), dv = new DataView(out.buffer);
+    dv.setUint32(0, body.length);
+    out.set([...type].map(c => c.charCodeAt(0)), 4); out.set(body, 8);
+    dv.setUint32(8 + body.length, hmCrc(out.subarray(4, 8 + body.length)));
+    return out;
+  };
+  const ihdr = new Uint8Array(13), dv = new DataView(ihdr.buffer);
+  dv.setUint32(0, n); dv.setUint32(4, n); ihdr.set([16, 0, 0, 0, 0], 8);
+  return new Blob([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", data), chunk("IEND", new Uint8Array(0))], { type: "image/png" });
+}
+
+function hmLoadDraft() {
+  try {
+    const s = localStorage.getItem("cg." + HM_DRAFT);
+    if (!s) return null;
+    const bytes = Uint8Array.from(atob(s), c => c.charCodeAt(0)), u16 = new Uint16Array(bytes.buffer), out = new Float32Array(HM_N * HM_N);
+    if (u16.length !== out.length) return null;
+    for (let i = 0; i < out.length; i++) out[i] = HM_MIN + u16[i] / 65535 * (HM_MAX - HM_MIN);
+    return out;
+  } catch { return null; }
+}
+function hmSaveDraft(heights) {
+  try {
+    const u16 = new Uint16Array(heights.length);
+    for (let i = 0; i < heights.length; i++) u16[i] = Math.round(Math.max(0, Math.min(1, (heights[i] - HM_MIN) / (HM_MAX - HM_MIN))) * 65535);
+    const bytes = new Uint8Array(u16.buffer);
+    let s = "";
+    for (let i = 0; i < bytes.length; i += 32768) s += String.fromCharCode(...bytes.subarray(i, i + 32768));
+    localStorage.setItem("cg." + HM_DRAFT, btoa(s));
+  } catch { /* no storage: the drawing only lives until the dialog closes */ }
+}
+
+// Sets a field of the land shape card through its input when it's on the page, so the row and the preview follow
+function setLandShape(name, value) {
+  const at = locate("Generator.LandShape." + name);
+  if (!at) return;
+  const input = document.querySelector(`#main .row[data-key="${CSS.escape(at.key)}"] input`);
+  if (input) { input.value = value; input.dispatchEvent(new Event("input", { bubbles: true })); }
+  else { at.obj[at.key] = value; changed(); }
+}
+
+function openPainter() {
+  const n = HM_N;
+  let hm = hmLoadDraft() || hmTemplates.island();
+  const undo = [];
+  const tool = { mode: store.get("hmTool", "raise"), size: store.get("hmSize", 24), strength: store.get("hmStrength", 6) };
+  const canvas = h("canvas", { width: n, height: n, class: "hm-canvas" });
+  const ctx2d = canvas.getContext("2d");
+  const image = ctx2d.createImageData(n, n);
+  const cursor = h("div", { class: "hm-cursor" });
+  const readout = h("span", { class: "hm-readout" }, "—");
+  const first = gen.runs[0] || { size: 4000, seed: randomSeed() };
+  let size = pv.size ?? first.size, seed = pv.seed ?? first.seed;
+
+  const draw = () => {
+    const d = image.data;
+    for (let y = 0; y < n; y++) {
+      const z = n - 1 - y;
+      for (let x = 0; x < n; x++) {
+        const i = z * n + x, v = hm[i];
+        let [r, g, b] = hmColor(v);
+        if (v > 0) {
+          const dx = (x < n - 1 ? hm[i + 1] : v) - v, dz = (z < n - 1 ? hm[i + n] : v) - v;
+          const light = 1 + Math.max(-0.45, Math.min(0.35, (-dx + dz) * 0.12));
+          r *= light; g *= light; b *= light;
+        }
+        const o = (y * n + x) * 4;
+        d[o] = r; d[o + 1] = g; d[o + 2] = b; d[o + 3] = 255;
+      }
+    }
+    ctx2d.putImageData(image, 0, 0);
+  };
+  let queued = false;
+  const redraw = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; draw(); }); } };
+
+  const cellAt = e => {
+    const rect = canvas.getBoundingClientRect();
+    return [(e.clientX - rect.left) / rect.width * n, n - 1 - (e.clientY - rect.top) / rect.height * n, rect];
+  };
+  let painting = false, flatTo = 0, lower = false, last = null;
+  const dab = (cx, cz) => {
+    const r = tool.size, r2 = r * r, k = tool.strength;
+    const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(n - 1, Math.ceil(cx + r));
+    const z0 = Math.max(0, Math.floor(cz - r)), z1 = Math.min(n - 1, Math.ceil(cz + r));
+    const mode = lower && tool.mode === "raise" ? "lower" : lower && tool.mode === "land" ? "sea" : tool.mode;
+    const src = mode === "smooth" ? Float32Array.from(hm) : null;
+    for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) {
+      const d2 = (x - cx) ** 2 + (z - cz) ** 2;
+      if (d2 > r2) continue;
+      const f = Math.pow(1 - d2 / r2, 2), i = z * n + x;
+      if (mode === "raise") hm[i] += k * f;
+      else if (mode === "lower") hm[i] -= k * f;
+      else if (mode === "land") hm[i] += (Math.max(hm[i], 6) - hm[i]) * Math.min(1, f * k / 4);
+      else if (mode === "sea") hm[i] += (Math.min(hm[i], -25) - hm[i]) * Math.min(1, f * k / 4);
+      else if (mode === "flatten") hm[i] += (flatTo - hm[i]) * Math.min(1, f * k / 10);
+      else if (mode === "smooth" && x > 0 && z > 0 && x < n - 1 && z < n - 1) {
+        const avg = (src[i - 1] + src[i + 1] + src[i - n] + src[i + n] + src[i - n - 1] + src[i - n + 1] + src[i + n - 1] + src[i + n + 1] + src[i]) / 9;
+        hm[i] += (avg - hm[i]) * Math.min(1, f * k / 6);
+      }
+      hm[i] = Math.max(HM_MIN, Math.min(HM_MAX, hm[i]));
+    }
+    redraw();
+  };
+  const stroke = e => {
+    const [cx, cz] = cellAt(e);
+    // Dabs every quarter of the brush along the way, so fast strokes stay continuous
+    if (last) {
+      const dist = Math.hypot(cx - last[0], cz - last[1]), step = Math.max(1, tool.size / 4);
+      for (let s = step; s < dist; s += step) dab(last[0] + (cx - last[0]) * s / dist, last[1] + (cz - last[1]) * s / dist);
+    }
+    dab(cx, cz);
+    last = [cx, cz];
+  };
+  canvas.addEventListener("contextmenu", e => e.preventDefault());
+  canvas.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    undo.push(Float32Array.from(hm)); if (undo.length > 30) undo.shift();
+    painting = true; lower = e.button === 2 || e.shiftKey; last = null;
+    const [cx, cz] = cellAt(e);
+    flatTo = hm[Math.max(0, Math.min(n - 1, Math.round(cz))) * n + Math.max(0, Math.min(n - 1, Math.round(cx)))];
+    stroke(e);
+  });
+  canvas.addEventListener("pointermove", e => {
+    const [cx, cz, rect] = cellAt(e);
+    const px = rect.width / n;
+    Object.assign(cursor.style, { display: "block", width: `${tool.size * 2 * px}px`, height: `${tool.size * 2 * px}px`,
+      left: `${e.clientX - rect.left - tool.size * px}px`, top: `${e.clientY - rect.top - tool.size * px}px` });
+    const xi = Math.floor(cx), zi = Math.floor(cz);
+    if (xi >= 0 && zi >= 0 && xi < n && zi < n) readout.textContent = t("hmHeight", Math.round(hm[zi * n + xi]));
+    if (painting) stroke(e);
+  });
+  const end = () => { if (painting) { painting = false; hmSaveDraft(hm); } };
+  canvas.addEventListener("pointerup", end);
+  canvas.addEventListener("pointercancel", end);
+  canvas.addEventListener("pointerleave", () => { cursor.style.display = "none"; });
+
+  const sizeLabel = h("span", { class: "hint", style: "margin:0" });
+  const updateLabels = () => { sizeLabel.textContent = t("hmBrushM", Math.round(tool.size * size / n)); };
+  const tools = [["raise", t("hmRaise")], ["lower", t("hmLower")], ["smooth", t("hmSmooth")], ["flatten", t("hmFlatten")], ["land", t("hmLand")], ["sea", t("hmSea")]];
+  const toolChips = h("div", { class: "chips", style: "justify-content:flex-start" }, tools.map(([id, label]) =>
+    h("button", { type: "button", class: "chip", "aria-pressed": String(tool.mode === id), onclick: e => {
+      tool.mode = id; store.set("hmTool", id);
+      toolChips.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c === e.currentTarget)));
+    } }, label)));
+  const slider = (label, key, min, max) => h("label", { class: "hm-slider" }, h("span", {}, label),
+    h("input", { type: "range", min, max, value: tool[key], oninput: e => { tool[key] = Number(e.target.value); store.set(key === "size" ? "hmSize" : "hmStrength", tool[key]); updateLabels(); } }));
+  const name = h("input", { type: "text", value: store.get("hmName", "drawn.png"), spellcheck: false, "aria-label": t("hmName") });
+  const detail = h("input", { type: "checkbox", checked: store.get("hmDetail", true), onchange: e => store.set("hmDetail", e.target.checked) });
+  const sizeSel = h("select", { "aria-label": t("size"), onchange: e => { size = Number(e.target.value); updateLabels(); } },
+    [...new Set([...SIZES, size])].sort((a, b) => a - b).map(v => h("option", { value: v, selected: v === size }, v)));
+  const seedIn = h("input", { type: "number", min: 0, value: seed, "aria-label": t("seed"), style: "width:130px", onchange: e => { seed = Number(e.target.value) || 0; } });
+  const pvImg = h("img", { class: "pv-full", hidden: true, alt: t("pvTitle") });
+  const status = h("p", { class: "pv-note" });
+  const template = key => { undo.push(Float32Array.from(hm)); hm = hmTemplates[key](); hmSaveDraft(hm); draw(); };
+  const doUndo = () => { if (undo.length) { hm = undo.pop(); hmSaveDraft(hm); draw(); } };
+  const keys = e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); doUndo(); } };
+
+  // Adapted copy to heightmaps/, then the land shape fields point at it
+  const upload = async () => {
+    let file = name.value.trim() || "drawn.png";
+    if (!/\.png$/i.test(file)) file += ".png";
+    store.set("hmName", file);
+    const blob = await hmPng(hmAdapt(hm, detail.checked));
+    const res = await fetch("/api/heightmap?name=" + encodeURIComponent(file), { method: "PUT", body: blob, headers: { "X-CG": "1" } });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.error || res.statusText);
+    S.extra.files = { ...S.extra.files, heightmaps: d.files };
+    setLandShape("Heightmap", d.name); setLandShape("HeightmapMin", HM_MIN); setLandShape("HeightmapMax", HM_MAX);
+    return d.name;
+  };
+  const busy = async (button, work) => {
+    const old = button.textContent; button.disabled = true; button.textContent = "…";
+    try { await work(); } catch (e) { toast(e.message); }
+    button.disabled = false; button.textContent = old;
+  };
+  const previewBtn = h("button", { type: "button", class: "btn", onclick: () => busy(previewBtn, async () => {
+    const file = await upload();
+    const d = await api("POST", "/api/preview", JSON.stringify(previewParams(size, seed)));
+    pvImg.src = d.image; pvImg.hidden = false;
+    status.textContent = `${file} · ${t("pvLand")} ${d.land}%`;
+  }) }, t("hmPreview"));
+  const saveBtn = h("button", { type: "button", class: "btn", onclick: () => busy(saveBtn, async () => {
+    const file = await upload(); toast(t("hmSaved", file)); status.textContent = t("hmSaved", file);
+  }) }, t("hmSave"));
+  let close = null;
+  const genBtn = h("button", { type: "button", class: "btn primary", disabled: !S.extra.rustFound || generating(), onclick: () => busy(genBtn, async () => {
+    await upload();
+    if (!(await save())) return;
+    await api("POST", "/api/generate", JSON.stringify({ runs: [{ size, seed }], args: gen.args }));
+    close();
+    toast(t("genStarted"));
+    go(TAB_GENERATE);
+    gen.lastDone = 0;
+    poll();
+  }) }, t("hmGenerate"));
+
+  const body = h("div", { class: "hm" },
+    h("div", { class: "hm-stage" }, canvas, cursor),
+    h("div", { class: "hm-side" },
+      h("p", { class: "pv-note" }, t("hmHelp")),
+      toolChips,
+      slider(t("hmBrush"), "size", 3, 90), sizeLabel,
+      slider(t("hmStrength"), "strength", 1, 20),
+      h("div", { class: "pv-row" }, readout, h("button", { type: "button", class: "btn small", onclick: doUndo, title: "Ctrl+Z" }, "↶ " + t("hmUndo"))),
+      h("div", { class: "pv-row" }, h("span", { class: "hint", style: "margin:0" }, t("hmStart")),
+        h("button", { type: "button", class: "btn small", onclick: () => template("island") }, t("hmIsland")),
+        h("button", { type: "button", class: "btn small", onclick: () => template("random") }, t("hmRandom")),
+        h("button", { type: "button", class: "btn small", onclick: () => template("sea") }, t("hmEmpty"))),
+      h("div", { class: "hm-sep" }),
+      h("label", { class: "pv-row", style: "font-size:12.5px; color:var(--muted)" }, h("span", { class: "switch" }, detail, h("span")), t("hmDetail")),
+      h("div", { class: "pv-row" }, h("span", { class: "hint", style: "margin:0" }, t("hmName")), name),
+      h("div", { class: "pv-row" }, sizeSel, seedIn,
+        h("button", { type: "button", class: "btn small", title: t("random"), onclick: () => { seed = randomSeed(); seedIn.value = seed; } }, "🎲")),
+      h("div", { class: "pv-row" }, previewBtn, saveBtn, genBtn),
+      status, pvImg));
+  close = modal(t("hmTitle"), body);
+  const overlay = document.querySelector(".overlay:last-of-type");
+  overlay?.querySelector(".modal")?.classList.add("wide");
+  window.addEventListener("keydown", keys);
+  // When the dialog goes away (×, Esc, click outside): keep the drawing and stop listening for Ctrl+Z
+  new MutationObserver((_, obs) => { if (!overlay?.isConnected) { window.removeEventListener("keydown", keys); hmSaveDraft(hm); obs.disconnect(); } }).observe(document.body, { childList: true });
+  updateLabels();
+  draw();
+}
+
 /* ---------- maps ---------- */
 const mapsState = { list: null, size: store.get("mapsSize", ""), must: store.get("mapsMust", "") };
 
@@ -1184,7 +2031,9 @@ function runsEditor(onChange) {
         [...new Set([...SIZES, run.size])].sort((a, b) => a - b).map(s => h("option", { value: s, selected: s === run.size }, s)));
       const seed = h("input", { type: "number", min: 0, value: run.seed, "aria-label": t("seed"), oninput: e => { run.seed = Number(e.target.value); saveGen(); onChange(); } });
       return h("div", { class: "run-row" }, size, seed,
-        h("button", { type: "button", class: "btn small", title: t("random"), "aria-label": t("random"), onclick: () => { run.seed = randomSeed(); seed.value = run.seed; saveGen(); onChange(); } }, "🎲"),
+        h("span", { style: "display:flex; gap:6px" },
+          h("button", { type: "button", class: "btn small", title: t("random"), "aria-label": t("random"), onclick: () => { run.seed = randomSeed(); seed.value = run.seed; saveGen(); onChange(); } }, "🎲"),
+          API && S.config ? h("button", { type: "button", class: "btn small", title: t("pvOpen"), onclick: () => previewRun(run) }, t("pvOpen")) : null),
         h("button", { type: "button", class: "btn ghost small", "aria-label": t("remove"), disabled: gen.runs.length === 1, onclick: () => { gen.runs.splice(i, 1); saveGen(); draw(); onChange(); } }, "×"));
     }),
     h("div", { style: "display:flex; gap:8px; flex-wrap:wrap" },
@@ -1243,11 +2092,14 @@ function serverCard() {
     catch (e) { toast(e.message); }
   };
   input.addEventListener("keydown", e => { if (e.key === "Enter") save(); });
-  return h("section", { class: "card" },
-    h("div", { class: "head" }, h("h3", {}, t("serverTitle")), h("span", { class: "badge " + (S.extra.rustFound ? "on" : "alert") }, S.extra.rustFound ? t("serverFound") : t("serverMissing"))),
+  // Folded once the server is found: it's set up once and then only takes room
+  const card = h("section", { class: "card" },
+    h("div", { class: "head" }, h("div", {}, h("h3", {}, t("serverTitle")), L.server ? h("p", {}, L.server) : null),
+      h("span", { class: "badge " + (S.extra.rustFound ? "on" : "alert") }, S.extra.rustFound ? t("serverFound") : t("serverMissing"))),
     h("div", { class: "body" },
       h("div", { style: "display:flex; gap:8px" }, input, h("button", { type: "button", class: "btn", disabled: generating(), onclick: save }, t("serverSave"))),
       h("div", { class: "hint", style: "margin-top:8px" }, t("serverHint", L.root))));
+  return foldable(card, "server." + (S.extra.rustFound ? "ok" : "missing"), () => [null, S.extra.rustFound ? "" : "changed"]);
 }
 
 async function copy(text, button) {
@@ -1386,16 +2238,104 @@ function openPresets() {
 function previewPreset(preset) {
   const next = clone(S.config);
   preset.apply(presetContext(next));
+  showChanges(preset.title[S.lang] || preset.title.en, next, openPresets, () => toast(t("applied")));
+}
+
+// What a preset or a profile would change, with Back and Apply
+function showChanges(title, next, back, done) {
   const changes = diff(S.schema, S.config, next, [], []);
   const content = changes.length
     ? h("table", { class: "diff" }, h("tbody", {}, changes.map(c => h("tr", {}, h("td", { class: "path" }, c.path),
         h("td", {}, h("span", { class: "from" }, show(c.from)), " → ", h("span", { class: "to" }, show(c.to)))))))
     : h("p", { style: "padding:12px 20px; color:var(--muted)" }, t("nothingChanges"));
-  modal(preset.title[S.lang] || preset.title.en, content, close => [
-    h("button", { type: "button", class: "btn", onclick: () => { close(); openPresets(); } }, t("back")),
+  modal(title, content, close => [
+    h("button", { type: "button", class: "btn", onclick: () => { close(); back(); } }, t("back")),
     h("button", { type: "button", class: "btn primary", disabled: !changes.length, onclick: () => {
-      S.config = next; close(); changed(); drawNav(); drawSection(); toast(t("applied"));
+      S.config = next; close(); changed(); drawNav(); drawSection(); done && done();
     } }, t("apply"))]);
+}
+
+/* ---------- profiles ---------- */
+// Profiles keep code names (x-name) instead of the keys of the config's language, so they load in either language
+function toCodeNames(node, value) {
+  if (isGroup(node) && value && typeof value === "object" && !Array.isArray(value)) {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      const child = node.properties[k];
+      if (k === LANG_KEY || child?.readOnly) continue;
+      out[child?.["x-name"] || k] = child ? toCodeNames(child, v) : clone(v);
+    }
+    return out;
+  }
+  if (isObjectList(node) && Array.isArray(value)) return value.map(x => toCodeNames(node.items, x));
+  return clone(value);
+}
+
+// Profile values over the current config: what the profile doesn't have (settings added later) stays as it is
+function fromCodeNames(node, base, value) {
+  if (isGroup(node) && value && typeof value === "object" && !Array.isArray(value)) {
+    const out = base && typeof base === "object" && !Array.isArray(base) ? { ...base } : {};
+    for (const [name, v] of Object.entries(value)) {
+      const k = keyOf(node, name) || name;
+      const child = node.properties[k];
+      if (child?.readOnly) continue;
+      out[k] = child ? fromCodeNames(child, out[k], v) : clone(v);
+    }
+    return out;
+  }
+  if (isObjectList(node) && Array.isArray(value)) return value.map(x => fromCodeNames(node.items, defaultsFor(node.items), x));
+  return clone(value);
+}
+
+async function openProfiles() {
+  let list = [];
+  try { list = await api("GET", "/api/profiles"); } catch (e) { toast(e.message); return; }
+  const body = h("div");
+  const name = h("input", { type: "text", value: store.get("profile", ""), placeholder: t("profileName"), "aria-label": t("profileName"), spellcheck: false, maxlength: 60 });
+  let armed = null;
+  const saveBtn = h("button", { type: "button", class: "btn primary", onclick: async () => {
+    const n = name.value.trim();
+    if (!n) { name.focus(); return; }
+    if (list.some(p => p.name.toLowerCase() === n.toLowerCase()) && armed !== n) {
+      armed = n; saveBtn.textContent = t("profileOverwrite", n);
+      setTimeout(() => { armed = null; saveBtn.textContent = t("profileSave"); }, 3000);
+      return;
+    }
+    const data = { profile: n, saved: new Date().toISOString(), config: toCodeNames(S.schema, S.config) };
+    try {
+      list = await api("PUT", "/api/profile?name=" + encodeURIComponent(n), JSON.stringify(data, null, 2));
+      store.set("profile", n); armed = null; saveBtn.textContent = t("profileSave"); draw(); toast(t("profileSaved", n));
+    } catch (e) { toast(e.message); }
+  } }, t("profileSave"));
+  name.addEventListener("keydown", e => { if (e.key === "Enter") saveBtn.click(); });
+
+  const load = async (p, close) => {
+    try {
+      const data = await api("GET", "/api/profile?name=" + encodeURIComponent(p.name));
+      const next = fromCodeNames(S.schema, S.config, data.config || data);
+      next[LANG_KEY] = S.config[LANG_KEY];
+      close();
+      showChanges(`${t("profiles")} · ${p.name}`, next, openProfiles, () => { store.set("profile", p.name); toast(t("profileLoaded", p.name)); });
+    } catch (e) { toast(e.message); }
+  };
+  const row = (p, close) => {
+    let sure = false;
+    const del = h("button", { type: "button", class: "btn small ghost danger", onclick: async () => {
+      if (!sure) { sure = true; del.textContent = t("removeSure"); setTimeout(() => { sure = false; del.textContent = t("remove"); }, 3000); return; }
+      try { list = await api("DELETE", "/api/profile?name=" + encodeURIComponent(p.name)); draw(); } catch (e) { toast(e.message); }
+    } }, t("remove"));
+    return h("div", { class: "preset" },
+      h("div", {}, h("b", {}, p.name), p.name === store.get("profile", "") ? h("span", { class: "badge on", style: "margin-left:8px" }, t("current")) : null, h("p", {}, p.modified)),
+      del, h("button", { type: "button", class: "btn small", onclick: () => load(p, close) }, t("load") + " →"));
+  };
+  let close;
+  const draw = () => fill(body,
+    h("div", { class: "pf-save" }, name, saveBtn),
+    h("p", { class: "hint", style: "padding: 0 20px 8px; margin: 0" }, t("profileHint")),
+    list.length ? list.map(p => row(p, close)) : h("p", { class: "hint", style: "padding: 8px 20px" }, t("noProfiles")));
+  close = modal(t("profiles"), body);
+  draw();
+  name.focus();
 }
 
 /* ---------- files ---------- */
@@ -1552,7 +2492,10 @@ function renderStart() {
 }
 
 /* ---------- boot ---------- */
-window.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && S.config) { e.preventDefault(); save(); } });
+window.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s" && S.config) { e.preventDefault(); save(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k" && S.config) { e.preventDefault(); document.getElementById("search")?.focus(); }
+});
 window.addEventListener("beforeunload", e => { if (S.dirty) { e.preventDefault(); e.returnValue = ""; } });
 document.addEventListener("dragover", e => e.preventDefault());
 document.addEventListener("drop", e => {
@@ -1566,11 +2509,13 @@ document.addEventListener("drop", e => {
     S.lang = (navigator.language || "").startsWith("ru") ? "ru" : "en";
     try { await refreshState(false); } catch (e) { document.getElementById("app").textContent = e.message; return; }
     if (!S.config) S.section = TAB_GENERATE;
+    else if (location.hash) S.section = decodeURIComponent(location.hash.slice(1));
     render();
     if (generating()) poll();
     return;
   }
   let data = null;
+  if (location.hash) S.section = decodeURIComponent(location.hash.slice(1));
   try { data = JSON.parse(document.getElementById("cg-data").textContent); } catch { /* standalone page */ }
   if (data && data.schema && data.config) {
     S.embedded = true; S.savedAt = data.savedAt || "";

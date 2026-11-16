@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
+using CustomGenerator.Shared;
 
 namespace CustomGenerator.Launcher
 {
@@ -102,6 +103,18 @@ namespace CustomGenerator.Launcher
                 case "POST /api/stop":
                     _generator.Stop();
                     return Response.RawJson("{\"ok\":true}");
+                case "POST /api/preview":
+                    return PreviewMap(request.Body);
+                case "PUT /api/heightmap":
+                    return UploadHeightmap(request.Query("name"), request.Body);
+                case "GET /api/profiles":
+                    return Response.RawJson(Json.Serialize(Profiles()));
+                case "GET /api/profile":
+                    return LoadProfile(request.Query("name"));
+                case "PUT /api/profile":
+                    return SaveProfile(request.Query("name"), request.Body);
+                case "DELETE /api/profile":
+                    return DeleteProfile(request.Query("name"));
             }
             if (request.Method == "GET" && request.Path.StartsWith("/files/")) return ServeFile(Uri.UnescapeDataString(request.Path.Substring(7)));
             return Response.Error(404, "Not found");
@@ -157,6 +170,7 @@ namespace CustomGenerator.Launcher
         private static Dictionary<string, object> Files(string customFolder) => new Dictionary<string, object> {
             ["custom"] = List(customFolder ?? "maps/custom", ".map", ".prefab"),
             ["swap"] = List("maps/prefabs", ".map"),
+            ["heightmaps"] = List("heightmaps", HeightmapFile.Extensions),
         };
 
         private static string[] List(string folder, params string[] extensions) {
@@ -229,6 +243,104 @@ namespace CustomGenerator.Launcher
             string extra = data.TryGetValue("args", out var a) ? a as string ?? "" : "";
             string error = _generator.Start(runs, extra);
             return error == null ? Response.RawJson("{\"ok\":true}") : Response.Error(409, error);
+        }
+
+        // ---------- terrain preview ----------
+        private static Response PreviewMap(byte[] body) {
+            var data = Json.DeserializeObject(Utf8.GetString(body)) as Dictionary<string, object>;
+            if (data == null) return Response.Error(400, "Invalid JSON");
+            int size = Convert.ToInt32(data["size"]);
+            long seed = Convert.ToInt64(data["seed"]);
+            if (size < 1000 || size > 9000) return Response.Error(400, $"Size {size} must be 1000-9000");
+            if (seed < 0 || seed > uint.MaxValue) return Response.Error(400, $"Seed {seed} must be 0-{uint.MaxValue}");
+            var r = new Preview.Request { Size = size, Seed = (uint)seed };
+            // Same normalization as WorldConfig: the parts are scaled to add up to 1
+            var tiers = Floats(data, "tiers");
+            if (tiers != null && tiers.Length == 3) r.Tiers = Normalize(tiers, new[] { 0f, 1f, 0f });
+            var biomes = Floats(data, "biomes");
+            if (biomes != null && biomes.Length == 4) r.Biomes = Normalize(biomes, new[] { 0f, 1f, 0f, 0f });
+            if (data.TryGetValue("jungle", out var j) && j != null) r.Jungle = Convert.ToSingle(j) / 100f;
+            if (data.TryGetValue("shape", out var sh) && sh is Dictionary<string, object> shape) {
+                float F(string k, float d) => shape.TryGetValue(k, out var v) && v != null ? Convert.ToSingle(v) : d;
+                r.Shape = new ShapeOptions {
+                    LandLevel = F("LandLevel", 0f), MountainHeight = F("MountainHeight", 1f), BeachHeight = F("BeachHeight", 0f), ShelfDepth = F("ShelfDepth", 0f),
+                    FillInlandSea = shape.TryGetValue("FillInlandSea", out var fill) && fill is bool b && b,
+                    IslandCount = (int)F("IslandCount", 0f), IslandSize = F("IslandSize", 180f), IslandDistance = F("IslandDistance", 300f),
+                    VolcanoHeight = F("VolcanoHeight", 0f), VolcanoRadius = F("VolcanoRadius", 450f), Seed = r.Seed + 1,
+                };
+                r.HasShape = true;
+                r.Heightmap = shape.TryGetValue("Heightmap", out var hm) ? hm as string : null;
+                r.HeightmapMin = F("HeightmapMin", -60f);
+                r.HeightmapMax = F("HeightmapMax", 240f);
+            }
+            try { return Response.RawJson(Json.Serialize(Preview.Render(_generator.ServerDir, Root, r))); }
+            catch (Exception ex) when (!(ex is OutOfMemoryException)) { return Response.Error(400, ex.Message); }
+        }
+
+        private static float[] Floats(Dictionary<string, object> data, string key) =>
+            data.TryGetValue(key, out var v) && v is object[] list ? list.Select(x => x == null ? 0f : Math.Max(0f, Convert.ToSingle(x))).ToArray() : null;
+
+        private static float[] Normalize(float[] values, float[] fallback) {
+            float sum = values.Sum();
+            return sum > 0f ? values.Select(x => x / sum).ToArray() : fallback;
+        }
+
+        // ---------- heightmaps ----------
+        private static Response UploadHeightmap(string name, byte[] body) {
+            name = Path.GetFileName(name ?? "").Trim();
+            if (name.Length == 0 || name.StartsWith(".") || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return Response.Error(400, "Bad file name");
+            if (!HeightmapFile.Extensions.Contains(Path.GetExtension(name).ToLowerInvariant())) return Response.Error(400, "Only .png, .raw and .r16 heightmaps");
+            HeightmapFile file;
+            try { file = HeightmapFile.Read(body, name); } catch (Exception ex) { return Response.Error(400, ex.Message); }
+            string folder = Path.Combine(Root, "heightmaps");
+            Directory.CreateDirectory(folder);
+            File.WriteAllBytes(Path.Combine(folder, name), body);
+            return Response.RawJson(Json.Serialize(new Dictionary<string, object> {
+                ["name"] = name, ["width"] = file.Width, ["height"] = file.Height, ["bits"] = file.Bits, ["files"] = List("heightmaps", HeightmapFile.Extensions),
+            }));
+        }
+
+        // ---------- profiles: named copies of the config in HarmonyConfig/profiles ----------
+        // The editor stores them with code names instead of the localized keys, so a profile works in either language
+        private static string ProfileDir => Path.Combine(ConfigDir, "profiles");
+        private static readonly System.Text.RegularExpressions.Regex ProfileName = new System.Text.RegularExpressions.Regex(@"^[\p{L}\p{N}][\p{L}\p{N} _\-.()]{0,59}$");
+
+        private static string ProfilePath(string name) {
+            name = name?.Trim();
+            return name != null && ProfileName.IsMatch(name) && !name.EndsWith(".") ? Path.Combine(ProfileDir, name + ".json") : null;
+        }
+
+        private static List<Dictionary<string, object>> Profiles() {
+            var list = new List<Dictionary<string, object>>();
+            if (!Directory.Exists(ProfileDir)) return list;
+            foreach (var file in new DirectoryInfo(ProfileDir).GetFiles("*.json").OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase))
+                list.Add(new Dictionary<string, object> { ["name"] = Path.GetFileNameWithoutExtension(file.Name), ["modified"] = file.LastWriteTime.ToString("yyyy-MM-dd HH:mm") });
+            return list;
+        }
+
+        private static Response LoadProfile(string name) {
+            string path = ProfilePath(name);
+            if (path == null || !File.Exists(path)) return Response.Error(404, "No such profile");
+            string json = ReadJson(path);
+            return json == "null" ? Response.Error(400, "The profile file isn't valid JSON") : Response.RawJson(json);
+        }
+
+        private static Response SaveProfile(string name, byte[] body) {
+            string path = ProfilePath(name);
+            if (path == null) return Response.Error(400, "Use letters, digits, spaces and - _ . ( ) in the name, up to 60");
+            string text = Utf8.GetString(body);
+            try { if (!(Json.DeserializeObject(text) is Dictionary<string, object>)) throw new FormatException("not an object"); }
+            catch (Exception ex) { return Response.Error(400, "Invalid JSON: " + ex.Message); }
+            Directory.CreateDirectory(ProfileDir);
+            File.WriteAllText(path, text, Utf8);
+            return Response.RawJson(Json.Serialize(Profiles()));
+        }
+
+        private static Response DeleteProfile(string name) {
+            string path = ProfilePath(name);
+            if (path == null || !File.Exists(path)) return Response.Error(404, "No such profile");
+            File.Delete(path);
+            return Response.RawJson(Json.Serialize(Profiles()));
         }
 
         private static Response ServeFile(string relative) {

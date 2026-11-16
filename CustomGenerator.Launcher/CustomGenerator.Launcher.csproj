@@ -33,7 +33,14 @@
   <ItemGroup>
     <Compile Include="Generator.cs" />
     <Compile Include="Http.cs" />
+    <Compile Include="Preview.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="..\CustomGenerator\Shared\HeightShape.cs">
+      <Link>Shared\HeightShape.cs</Link>
+    </Compile>
+    <Compile Include="..\CustomGenerator\Shared\HeightmapFile.cs">
+      <Link>Shared\HeightmapFile.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\CustomGenerator\Editor\ConfigEditor.html">
@@ -44,6 +51,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
