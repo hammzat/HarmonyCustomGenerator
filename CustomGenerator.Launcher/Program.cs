@@ -103,6 +103,8 @@ namespace CustomGenerator.Launcher
                 case "POST /api/stop":
                     _generator.Stop();
                     return Response.RawJson("{\"ok\":true}");
+                case "POST /api/preview":
+                    return PreviewMap(request.Body);
                 case "PUT /api/heightmap":
                     return UploadHeightmap(request.Query("name"), request.Body);
             }
@@ -233,6 +235,46 @@ namespace CustomGenerator.Launcher
             string extra = data.TryGetValue("args", out var a) ? a as string ?? "" : "";
             string error = _generator.Start(runs, extra);
             return error == null ? Response.RawJson("{\"ok\":true}") : Response.Error(409, error);
+        }
+
+        // ---------- terrain preview ----------
+        private static Response PreviewMap(byte[] body) {
+            var data = Json.DeserializeObject(Utf8.GetString(body)) as Dictionary<string, object>;
+            if (data == null) return Response.Error(400, "Invalid JSON");
+            int size = Convert.ToInt32(data["size"]);
+            long seed = Convert.ToInt64(data["seed"]);
+            if (size < 1000 || size > 9000) return Response.Error(400, $"Size {size} must be 1000-9000");
+            if (seed < 0 || seed > uint.MaxValue) return Response.Error(400, $"Seed {seed} must be 0-{uint.MaxValue}");
+            var r = new Preview.Request { Size = size, Seed = (uint)seed };
+            // Same normalization as WorldConfig: the parts are scaled to add up to 1
+            var tiers = Floats(data, "tiers");
+            if (tiers != null && tiers.Length == 3) r.Tiers = Normalize(tiers, new[] { 0f, 1f, 0f });
+            var biomes = Floats(data, "biomes");
+            if (biomes != null && biomes.Length == 4) r.Biomes = Normalize(biomes, new[] { 0f, 1f, 0f, 0f });
+            if (data.TryGetValue("jungle", out var j) && j != null) r.Jungle = Convert.ToSingle(j) / 100f;
+            if (data.TryGetValue("shape", out var sh) && sh is Dictionary<string, object> shape) {
+                float F(string k, float d) => shape.TryGetValue(k, out var v) && v != null ? Convert.ToSingle(v) : d;
+                r.Shape = new ShapeOptions {
+                    LandLevel = F("LandLevel", 0f), MountainHeight = F("MountainHeight", 1f), BeachHeight = F("BeachHeight", 0f), ShelfDepth = F("ShelfDepth", 0f),
+                    FillInlandSea = shape.TryGetValue("FillInlandSea", out var fill) && fill is bool b && b,
+                    IslandCount = (int)F("IslandCount", 0f), IslandSize = F("IslandSize", 180f), IslandDistance = F("IslandDistance", 300f),
+                    VolcanoHeight = F("VolcanoHeight", 0f), VolcanoRadius = F("VolcanoRadius", 450f), Seed = r.Seed + 1,
+                };
+                r.HasShape = true;
+                r.Heightmap = shape.TryGetValue("Heightmap", out var hm) ? hm as string : null;
+                r.HeightmapMin = F("HeightmapMin", -60f);
+                r.HeightmapMax = F("HeightmapMax", 240f);
+            }
+            try { return Response.RawJson(Json.Serialize(Preview.Render(_generator.ServerDir, Root, r))); }
+            catch (Exception ex) when (!(ex is OutOfMemoryException)) { return Response.Error(400, ex.Message); }
+        }
+
+        private static float[] Floats(Dictionary<string, object> data, string key) =>
+            data.TryGetValue(key, out var v) && v is object[] list ? list.Select(x => x == null ? 0f : Math.Max(0f, Convert.ToSingle(x))).ToArray() : null;
+
+        private static float[] Normalize(float[] values, float[] fallback) {
+            float sum = values.Sum();
+            return sum > 0f ? values.Select(x => x / sum).ToArray() : fallback;
         }
 
         // ---------- heightmaps ----------

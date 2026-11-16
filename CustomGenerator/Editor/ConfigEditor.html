@@ -330,7 +330,28 @@ nav button > span:not(.ico):not(.state) { white-space: nowrap; overflow: hidden;
 nav .sep { margin: 12px 10px; }
 .with-toc .toc a.on { font-weight: 600; }
 
+/* Terrain preview */
+.pv { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 18px; padding: 16px 18px; border-bottom: 1px solid var(--line); align-items: start; background: var(--panel); }
+.pv-box { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--panel-2); border: 1px solid var(--line); cursor: zoom-in; }
+.pv-box img { width: 100%; height: 100%; display: block; }
+.pv-box img:not([src]) { visibility: hidden; }
+.pv-busy { position: absolute; inset: 0; display: none; place-items: center; background: color-mix(in srgb, var(--panel) 45%, transparent); }
+.pv-box.loading .pv-busy { display: grid; }
+.pv-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pv-side h4 { margin: 0; font-size: 14px; }
+.pv-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.pv-row select { width: 100px; }
+.pv-row input[type=number] { width: 150px; }
+.pv-row label { display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.pv-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.pv-stats .stat { padding: 8px 12px; }
+.pv-stats .stat b { font-size: 15px; }
+.pv-note { font-size: 12px; color: var(--muted); margin: 0; }
+.pv-error { font-size: 12.5px; color: var(--bad); margin: 0; }
+.pv-full { display: block; width: 100%; border-radius: 10px; }
+
 @media (max-width: 760px) {
+  .pv { grid-template-columns: 1fr; }
   .layout { grid-template-columns: 1fr; }
   nav { position: static; height: auto; display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 8px; }
   nav button { width: auto; white-space: nowrap; }
@@ -419,6 +440,9 @@ const UI = {
     serverSaved: "Server folder saved", noServer: "Set the Rust server folder above to generate maps.",
     log: "Log", unknownValue: "Unknown value, the mod ignores it", close: "Close", noPermission: "No permission to write the file",
     saveBlocked: "Can't save while a map is generating: the mod rewrites the config when it starts.",
+    pvTitle: "Terrain preview", pvRefresh: "Refresh", pvAuto: "Update on change", pvToRuns: "Generate this one", pvAdded: "Added to the maps on the Generate tab",
+    pvNote: "The land in a second, from your Rust server's own terrain code. Rivers, mountains, canyons, lakes and monuments come during the real generation.",
+    pvLand: "Land", pvWas: "was {0}%", pvIslands: "Islands added", pvVolcano: "Volcano", pvTime: "Took", pvNone: "none", pvOpen: "Preview", pvHeightmap: "Heightmap {0}",
     upload: "Upload…", hmUploaded: "{0} uploaded: {1}", hmNone: "No files in heightmaps/ yet: upload a PNG or RAW.",
   },
   ru: {
@@ -479,6 +503,9 @@ const UI = {
     serverSaved: "Папка сервера сохранена", noServer: "Укажите выше папку сервера Rust, чтобы генерировать карты.",
     log: "Лог", unknownValue: "Неизвестное значение, мод его игнорирует", close: "Закрыть", noPermission: "Нет разрешения на запись файла",
     saveBlocked: "Нельзя сохранять, пока генерируется карта: мод перезаписывает конфиг при запуске.",
+    pvTitle: "Превью рельефа", pvRefresh: "Обновить", pvAuto: "Обновлять при изменениях", pvToRuns: "Сгенерировать эту", pvAdded: "Добавлено в карты на вкладке «Генерация»",
+    pvNote: "Суша за секунду, тем же кодом рельефа, что у вашего сервера Rust. Реки, горы, каньоны, озёра и монументы появятся при настоящей генерации.",
+    pvLand: "Суша", pvWas: "было {0}%", pvIslands: "Добавлено островов", pvVolcano: "Вулкан", pvTime: "Заняло", pvNone: "нет", pvOpen: "Превью", pvHeightmap: "Карта высот {0}",
     upload: "Загрузить…", hmUploaded: "{0} загружен: {1}", hmNone: "В heightmaps/ пока нет файлов: загрузите PNG или RAW.",
   },
 };
@@ -1021,7 +1048,8 @@ function groupCard(title, node, obj, onAnyChange, ctx) {
     sum = h("span", { class: "sum" });
     head.append(sum);
   }
-  const fields = renderFields(node, obj, () => { updateSum(); bar && bar.update(); card.updateFold && card.updateFold(); onAnyChange && onAnyChange(); }, false, ctx);
+  let preview = null;
+  const fields = renderFields(node, obj, () => { updateSum(); bar && bar.update(); card.updateFold && card.updateFold(); preview && preview.schedule(); onAnyChange && onAnyChange(); }, false, ctx);
   const updateSum = () => {
     if (!sum) return;
     const spec = node["x-sum"];
@@ -1033,6 +1061,7 @@ function groupCard(title, node, obj, onAnyChange, ctx) {
   };
   const card = h("section", { class: "card", "data-key": title }, head);
   if (node["x-sum"]) { bar = percentBar(node, obj, fields); card.append(bar.el); }
+  if (API && node["x-name"] === "LandShape") { preview = previewPanel(); card.append(preview.el); }
   card.append(fields);
   updateSum();
   const master = masterKey(node, obj);
@@ -1493,6 +1522,100 @@ function worldCard(w) {
   return h("section", { class: "card" }, h("div", { class: "head" }, h("h3", {}, t("world"))), body);
 }
 
+/* ---------- terrain preview ---------- */
+// Value of a field by code names, its default when the config doesn't have it
+function setting(path) {
+  const at = locate(path);
+  return at ? at.obj[at.key] ?? at.node.default : undefined;
+}
+
+// What /api/preview needs: the land shape by code names, tiers and biomes when they're changed
+function previewParams(size, seed) {
+  const at = locate("Generator.LandShape");
+  const shape = {};
+  if (at && isGroup(at.node)) for (const [k, n] of Object.entries(at.node.properties)) shape[n["x-name"] || k] = at.obj[at.key]?.[k] ?? n.default;
+  const p = { size, seed, shape };
+  if (setting("Generator.ModifyPercentages")) {
+    p.tiers = ["Tier0", "Tier1", "Tier2"].map(n => setting("Generator.Tier." + n));
+    p.biomes = ["Arid", "Temperate", "Tundra", "Arctic"].map(n => setting("Generator.Biom." + n));
+    p.jungle = setting("Generator.Biom.Jungle");
+  }
+  return p;
+}
+
+const pv = { size: store.get("pvSize", null), seed: store.get("pvSeed", null), auto: store.get("pvAuto", true) };
+
+function previewStats(d) {
+  const tile = (k, v) => h("div", { class: "stat" }, h("small", {}, k), h("b", {}, v));
+  return [
+    tile(t("pvLand") + (d.landBefore !== undefined && Math.abs(d.landBefore - d.land) >= 0.1 ? " · " + t("pvWas", d.landBefore) : ""), `${d.land}%`),
+    d.islands ? tile(t("pvIslands"), d.islands) : null,
+    d.volcano ? tile(t("pvVolcano"), `${d.volcano.x}, ${d.volcano.z}`) : null,
+    tile(t("pvTime"), `${(d.ms / 1000).toFixed(1)} s`),
+  ];
+}
+
+function previewImage(src, title) {
+  modal(title, h("div", { style: "padding: 4px 20px 12px" }, h("img", { class: "pv-full", src, alt: title })));
+}
+
+// Panel on top of the land shape card: the map at the chosen size and seed, redrawn when a field changes
+function previewPanel() {
+  const first = gen.runs[0] || { size: 4000, seed: randomSeed() };
+  let size = pv.size ?? first.size, seed = pv.seed ?? first.seed;
+  let timer = null, busy = false, again = false, started = false;
+  const img = h("img", { alt: t("pvTitle") });
+  const box = h("div", { class: "pv-box", onclick: () => img.src && previewImage(img.src, `${size} / ${seed}`) }, img, h("div", { class: "pv-busy" }, h("span", { class: "spinner" })));
+  const stats = h("div", { class: "pv-stats" });
+  const error = h("p", { class: "pv-error", hidden: true });
+  const keep = () => { store.set("pvSize", size); store.set("pvSeed", seed); };
+
+  const run = async () => {
+    if (busy) { again = true; return; }
+    busy = true; started = true; box.classList.add("loading");
+    try {
+      const d = await api("POST", "/api/preview", JSON.stringify(previewParams(size, seed)));
+      img.src = d.image; error.hidden = true;
+      fill(stats, ...previewStats(d), d.heightmap ? h("div", { class: "stat" }, h("small", {}, t("pvHeightmap", "")), h("b", {}, d.heightmap)) : null);
+    } catch (e) { error.textContent = e.message; error.hidden = false; }
+    busy = false; box.classList.remove("loading");
+    if (again) { again = false; run(); }
+  };
+  const schedule = () => { if (!pv.auto || !started) return; clearTimeout(timer); timer = setTimeout(run, 300); };
+
+  const sizeSel = h("select", { "aria-label": t("size"), onchange: e => { size = Number(e.target.value); keep(); run(); } },
+    [...new Set([...SIZES, size])].sort((a, b) => a - b).map(v => h("option", { value: v, selected: v === size }, v)));
+  const seedIn = h("input", { type: "number", min: 0, value: seed, "aria-label": t("seed"), onchange: e => { seed = Number(e.target.value) || 0; keep(); run(); } });
+  const auto = h("input", { type: "checkbox", checked: pv.auto, onchange: e => { pv.auto = e.target.checked; store.set("pvAuto", pv.auto); } });
+  const el = h("div", { class: "pv" }, box,
+    h("div", { class: "pv-side" },
+      h("h4", {}, t("pvTitle")),
+      h("div", { class: "pv-row" }, sizeSel, seedIn,
+        h("button", { type: "button", class: "btn small", title: t("random"), "aria-label": t("random"), onclick: () => { seed = randomSeed(); seedIn.value = seed; keep(); run(); } }, "🎲"),
+        h("button", { type: "button", class: "btn small", onclick: run }, t("pvRefresh"))),
+      h("div", { class: "pv-row" }, h("label", {}, h("span", { class: "switch" }, auto, h("span")), t("pvAuto")),
+        h("button", { type: "button", class: "btn small ghost", onclick: () => {
+          if (!gen.runs.some(r => r.size === size && r.seed === seed)) gen.runs.push({ size, seed });
+          saveGen(); toast(t("pvAdded"));
+        } }, "+ " + t("pvToRuns"))),
+      stats, error, h("p", { class: "pv-note" }, t("pvNote"))));
+  // First picture once the panel is on screen (the card may start folded)
+  const spy = new IntersectionObserver(entries => { if (entries.some(e => e.isIntersecting) && !started) { spy.disconnect(); run(); } });
+  setTimeout(() => spy.observe(box));
+  return { el, schedule, run };
+}
+
+// The preview of one map of the Generate list, in a dialog
+async function previewRun(run) {
+  const body = h("div", { style: "padding: 4px 20px 12px" }, h("div", { class: "pv-box loading", style: "cursor:default" }, h("div", { class: "pv-busy" }, h("span", { class: "spinner" }))));
+  modal(`${t("pvTitle")} · ${run.size} / ${run.seed}`, body);
+  try {
+    const d = await api("POST", "/api/preview", JSON.stringify(previewParams(run.size, run.seed)));
+    fill(body, h("img", { class: "pv-full", src: d.image, alt: `${run.size} / ${run.seed}` }), h("div", { class: "pv-stats", style: "margin-top:12px" }, ...previewStats(d)),
+      h("p", { class: "pv-note", style: "margin-top:10px" }, t("pvNote")));
+  } catch (e) { fill(body, h("p", { class: "pv-error" }, e.message)); }
+}
+
 /* ---------- maps ---------- */
 const mapsState = { list: null, size: store.get("mapsSize", ""), must: store.get("mapsMust", "") };
 
@@ -1552,7 +1675,9 @@ function runsEditor(onChange) {
         [...new Set([...SIZES, run.size])].sort((a, b) => a - b).map(s => h("option", { value: s, selected: s === run.size }, s)));
       const seed = h("input", { type: "number", min: 0, value: run.seed, "aria-label": t("seed"), oninput: e => { run.seed = Number(e.target.value); saveGen(); onChange(); } });
       return h("div", { class: "run-row" }, size, seed,
-        h("button", { type: "button", class: "btn small", title: t("random"), "aria-label": t("random"), onclick: () => { run.seed = randomSeed(); seed.value = run.seed; saveGen(); onChange(); } }, "🎲"),
+        h("span", { style: "display:flex; gap:6px" },
+          h("button", { type: "button", class: "btn small", title: t("random"), "aria-label": t("random"), onclick: () => { run.seed = randomSeed(); seed.value = run.seed; saveGen(); onChange(); } }, "🎲"),
+          API && S.config ? h("button", { type: "button", class: "btn small", title: t("pvOpen"), onclick: () => previewRun(run) }, t("pvOpen")) : null),
         h("button", { type: "button", class: "btn ghost small", "aria-label": t("remove"), disabled: gen.runs.length === 1, onclick: () => { gen.runs.splice(i, 1); saveGen(); draw(); onChange(); } }, "×"));
     }),
     h("div", { style: "display:flex; gap:8px; flex-wrap:wrap" },
