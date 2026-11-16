@@ -34,6 +34,9 @@
     <Compile Include="Generator.cs" />
     <Compile Include="Http.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="..\CustomGenerator\Shared\HeightmapFile.cs">
+      <Link>Shared\HeightmapFile.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\CustomGenerator\Editor\ConfigEditor.html">

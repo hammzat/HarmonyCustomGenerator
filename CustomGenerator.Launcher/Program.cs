@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
+using CustomGenerator.Shared;
 
 namespace CustomGenerator.Launcher
 {
@@ -102,6 +103,8 @@ namespace CustomGenerator.Launcher
                 case "POST /api/stop":
                     _generator.Stop();
                     return Response.RawJson("{\"ok\":true}");
+                case "PUT /api/heightmap":
+                    return UploadHeightmap(request.Query("name"), request.Body);
             }
             if (request.Method == "GET" && request.Path.StartsWith("/files/")) return ServeFile(Uri.UnescapeDataString(request.Path.Substring(7)));
             return Response.Error(404, "Not found");
@@ -157,6 +160,7 @@ namespace CustomGenerator.Launcher
         private static Dictionary<string, object> Files(string customFolder) => new Dictionary<string, object> {
             ["custom"] = List(customFolder ?? "maps/custom", ".map", ".prefab"),
             ["swap"] = List("maps/prefabs", ".map"),
+            ["heightmaps"] = List("heightmaps", HeightmapFile.Extensions),
         };
 
         private static string[] List(string folder, params string[] extensions) {
@@ -229,6 +233,21 @@ namespace CustomGenerator.Launcher
             string extra = data.TryGetValue("args", out var a) ? a as string ?? "" : "";
             string error = _generator.Start(runs, extra);
             return error == null ? Response.RawJson("{\"ok\":true}") : Response.Error(409, error);
+        }
+
+        // ---------- heightmaps ----------
+        private static Response UploadHeightmap(string name, byte[] body) {
+            name = Path.GetFileName(name ?? "").Trim();
+            if (name.Length == 0 || name.StartsWith(".") || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return Response.Error(400, "Bad file name");
+            if (!HeightmapFile.Extensions.Contains(Path.GetExtension(name).ToLowerInvariant())) return Response.Error(400, "Only .png, .raw and .r16 heightmaps");
+            HeightmapFile file;
+            try { file = HeightmapFile.Read(body, name); } catch (Exception ex) { return Response.Error(400, ex.Message); }
+            string folder = Path.Combine(Root, "heightmaps");
+            Directory.CreateDirectory(folder);
+            File.WriteAllBytes(Path.Combine(folder, name), body);
+            return Response.RawJson(Json.Serialize(new Dictionary<string, object> {
+                ["name"] = name, ["width"] = file.Width, ["height"] = file.Height, ["bits"] = file.Bits, ["files"] = List("heightmaps", HeightmapFile.Extensions),
+            }));
         }
 
         private static Response ServeFile(string relative) {

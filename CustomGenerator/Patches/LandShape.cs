@@ -1,6 +1,8 @@
 using CustomGenerator.Utility;
 using CustomGenerator.Shared;
 using HarmonyLib;
+using System;
+using System.IO;
 using Unity.Collections;
 using UnityEngine;
 
@@ -26,6 +28,17 @@ namespace CustomGenerator.Patches
             var h = new float[res * res];
             for (int i = 0; i < h.Length; i++) h[i] = posY + BitUtility.Short2Float(heights[i]) * sizeY;
 
+            if (!string.IsNullOrWhiteSpace(s.Heightmap)) {
+                string path = HeightmapPath(s.Heightmap);
+                try {
+                    var file = HeightmapFile.Read(File.ReadAllBytes(path), path);
+                    file.Fill(h, res, s.HeightmapMin, s.HeightmapMax);
+                    Logging.Generation($"Heightmap {s.Heightmap}: {file.Width}x{file.Height}, {file.Bits} bit, {s.HeightmapMin:0} to {s.HeightmapMax:0} m");
+                } catch (Exception ex) {
+                    Logging.Error($"Heightmap {path} not used: {ex.Message}");
+                }
+            }
+
             var result = HeightShape.Apply(h, res, TerrainMeta.Size.x / res, s.Options(seed));
             for (int i = 0; i < h.Length; i++) heights[i] = BitUtility.Float2Short(Mathf.Clamp01((h[i] - posY) / sizeY));
 
@@ -39,6 +52,10 @@ namespace CustomGenerator.Patches
                 Logging.Generation($"Volcano: {s.VolcanoHeight:0} m high, {result.VolcanoRadius:0} m radius at ({world.x:0}, {world.z:0})");
             }
         }
+
+        // A bare file name is in heightmaps/, anything with a folder is relative to the mod's folder
+        internal static string HeightmapPath(string value) =>
+            value.IndexOfAny(new[] { '/', '\\' }) >= 0 || Path.IsPathRooted(value) ? Paths.Resolve(value) : Paths.Get("heightmaps", value);
 
         internal static Vector3? VolcanoAt;
         internal static float VolcanoRadius;

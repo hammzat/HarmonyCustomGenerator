@@ -424,9 +424,24 @@ namespace CustomGenerator
                   "Острова стоят не дальше этого от берега и всегда хотя бы в 40 м от него")]
             [Schema(Min = 50, Max = 1500)]
             public float IslandDistance = 300f;
+            [Loc("Heightmap file", "Файл карты высот")]
+            [Desc("Your own terrain instead of Rust's: a grayscale PNG (8 or 16 bit) or RAW (16 bit) from heightmaps/. Black = the lowest point, white = the highest. Leave empty for a normal map. Everything above still applies on top",
+                  "Свой рельеф вместо рельефа Rust: серая PNG (8 или 16 бит) или RAW (16 бит) из папки heightmaps/. Чёрный = самая низкая точка, белый = самая высокая. Пусто = обычная карта. Всё, что выше, применяется поверх")]
+            [Schema(Suggest = "heightmaps")]
+            public string Heightmap = "";
+            [Loc("Heightmap: black is (m)", "Карта высот: чёрный это (м)")]
+            [Desc("Height of black in the heightmap. Sea level is 0, the deepest Rust goes is -500",
+                  "Высота чёрного цвета на карте высот. Уровень моря 0, глубже -500 в Rust не бывает")]
+            [Schema(Min = -500, Max = 500)]
+            public float HeightmapMin = -60f;
+            [Loc("Heightmap: white is (m)", "Карта высот: белый это (м)")]
+            [Desc("Height of white in the heightmap. Rust maps usually top out at 150-300",
+                  "Высота белого цвета на карте высот. Горы на картах Rust обычно до 150-300")]
+            [Schema(Min = -500, Max = 500)]
+            public float HeightmapMax = 240f;
 
             public bool HasChanges() => LandLevel != 0f || MountainHeight != 1f || BeachHeight > 0f || ShelfDepth > 0f || FillInlandSea || VolcanoHeight > 0f
-                || IslandCount > 0;
+                || IslandCount > 0 || !string.IsNullOrWhiteSpace(Heightmap);
 
             public Shared.ShapeOptions Options(uint seed) => new Shared.ShapeOptions {
                 LandLevel = LandLevel, MountainHeight = MountainHeight, BeachHeight = BeachHeight, ShelfDepth = ShelfDepth, FillInlandSea = FillInlandSea,
@@ -473,7 +488,7 @@ namespace CustomGenerator
             tempData = new TempData();
 
             // The folders people put their files into, so they're easy to find
-            foreach (var folder in new[] { Paths.Get("HarmonyConfig"), Paths.Get("maps", "custom"), Paths.Get("maps", "prefabs") })
+            foreach (var folder in new[] { Paths.Get("HarmonyConfig"), Paths.Get("maps", "custom"), Paths.Get("maps", "prefabs"), Paths.Get("heightmaps") })
                 Directory.CreateDirectory(folder);
 
             if (!File.Exists(Location)) {
@@ -643,6 +658,13 @@ namespace CustomGenerator
             land.IslandCount = Mathf.Clamp(land.IslandCount, 0, 40);
             land.IslandSize = Mathf.Clamp(land.IslandSize, 50f, 500f);
             land.IslandDistance = Mathf.Clamp(land.IslandDistance, 50f, 1500f);
+            land.Heightmap = land.Heightmap?.Trim() ?? "";
+            land.HeightmapMin = Mathf.Clamp(land.HeightmapMin, -500f, 500f);
+            land.HeightmapMax = Mathf.Clamp(land.HeightmapMax, -500f, 500f);
+            if (land.HeightmapMax <= land.HeightmapMin) {
+                Logging.Warning($"Heightmap: white ({land.HeightmapMax}) must be higher than black ({land.HeightmapMin}), using {land.HeightmapMin + 100}");
+                land.HeightmapMax = Mathf.Min(500f, land.HeightmapMin + 100f);
+            }
             foreach (var key in gen.DecorDensity.Keys.Where(x => string.IsNullOrWhiteSpace(x) || gen.DecorDensity[x] < 0f).ToList()) {
                 Logging.Warning($"Decor density '{key}': {gen.DecorDensity[key]} skipped, needs a folder and a multiplier of 0 or more");
                 gen.DecorDensity.Remove(key);

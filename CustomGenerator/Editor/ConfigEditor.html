@@ -419,6 +419,7 @@ const UI = {
     serverSaved: "Server folder saved", noServer: "Set the Rust server folder above to generate maps.",
     log: "Log", unknownValue: "Unknown value, the mod ignores it", close: "Close", noPermission: "No permission to write the file",
     saveBlocked: "Can't save while a map is generating: the mod rewrites the config when it starts.",
+    upload: "Upload…", hmUploaded: "{0} uploaded: {1}", hmNone: "No files in heightmaps/ yet: upload a PNG or RAW.",
   },
   ru: {
     subtitleEmbedded: "Значения с последнего запуска сервера, {0}", subtitleFile: "Файл: {0}", subtitleApi: "Лаунчер · {0}",
@@ -478,6 +479,7 @@ const UI = {
     serverSaved: "Папка сервера сохранена", noServer: "Укажите выше папку сервера Rust, чтобы генерировать карты.",
     log: "Лог", unknownValue: "Неизвестное значение, мод его игнорирует", close: "Закрыть", noPermission: "Нет разрешения на запись файла",
     saveBlocked: "Нельзя сохранять, пока генерируется карта: мод перезаписывает конфиг при запуске.",
+    upload: "Загрузить…", hmUploaded: "{0} загружен: {1}", hmNone: "В heightmaps/ пока нет файлов: загрузите PNG или RAW.",
   },
 };
 
@@ -753,6 +755,39 @@ function fieldRow(key, node, obj, onChange, ctx) {
       const update = () => { const v = String(get() || ""); preview.textContent = t("preview", v.replace("{0}", "4000").replace("{1}", "12345") + (v.endsWith(".map") ? "" : ".map")); };
       input.addEventListener("input", update); update();
       label.append(preview);
+    }
+    if (suggest === "heightmaps") {
+      const id = "hm-" + Math.random().toString(36).slice(2);
+      const list = h("datalist", { id });
+      const hint = h("div", { class: "hint" });
+      const files = () => S.extra.files?.heightmaps || [];
+      const draw = () => {
+        fill(list, files().map(f => h("option", { value: f })));
+        const v = String(get() || "");
+        hint.className = "hint" + (v && !files().includes(v) && !/[\\/]/.test(v) ? " warn" : "");
+        hint.textContent = v && !files().includes(v) && !/[\\/]/.test(v) ? t("fileMissing", v) : !files().length && API ? t("hmNone") : "";
+      };
+      input.setAttribute("list", id);
+      input.addEventListener("input", draw);
+      control.append(list);
+      if (API) {
+        const pick = h("input", { type: "file", accept: ".png,.raw,.r16", hidden: true, onchange: async () => {
+          const file = pick.files[0];
+          pick.value = "";
+          if (!file) return;
+          try {
+            const res = await fetch("/api/heightmap?name=" + encodeURIComponent(file.name), { method: "PUT", body: file, headers: { "X-CG": "1" } });
+            const d = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(d.error || res.statusText);
+            S.extra.files = { ...S.extra.files, heightmaps: d.files };
+            input.value = d.name; set(d.name); draw();
+            toast(t("hmUploaded", d.name, `${d.width}×${d.height}, ${d.bits} bit`));
+          } catch (e) { toast(e.message); }
+        } });
+        control.append(h("button", { type: "button", class: "btn small", onclick: () => pick.click() }, t("upload")), pick);
+      }
+      label.append(hint);
+      draw();
     }
     if (suggest === "customFiles") {
       const files = S.extra.files?.custom || [];

@@ -9,7 +9,7 @@ namespace CustomGenerator.Launcher
     // Just enough HTTP/1.1 for one page and a JSON API on loopback: one request per connection
     internal sealed class Request
     {
-        private const int MaxHeader = 64 * 1024, MaxBody = 16 * 1024 * 1024;
+        private const int MaxHeader = 64 * 1024, MaxBody = 96 * 1024 * 1024;
 
         public string Method, Path;
         public byte[] Body = new byte[0];
