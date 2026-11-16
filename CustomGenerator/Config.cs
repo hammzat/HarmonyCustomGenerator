@@ -14,7 +14,7 @@ namespace CustomGenerator
     public class ExtConfig {
         public static ConfigData Config;
         public static TempData tempData;
-        private static readonly string CurrentVersion = "0.3.0";
+        private static readonly string CurrentVersion = "0.4.0";
 
         private static readonly string Location = Paths.Get("HarmonyConfig", "CustomGenerator.json");
         private static readonly string SchemaLocation = Paths.Get("HarmonyConfig", "CustomGenerator.schema.json");
