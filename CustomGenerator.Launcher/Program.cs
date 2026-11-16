@@ -107,6 +107,14 @@ namespace CustomGenerator.Launcher
                     return PreviewMap(request.Body);
                 case "PUT /api/heightmap":
                     return UploadHeightmap(request.Query("name"), request.Body);
+                case "GET /api/profiles":
+                    return Response.RawJson(Json.Serialize(Profiles()));
+                case "GET /api/profile":
+                    return LoadProfile(request.Query("name"));
+                case "PUT /api/profile":
+                    return SaveProfile(request.Query("name"), request.Body);
+                case "DELETE /api/profile":
+                    return DeleteProfile(request.Query("name"));
             }
             if (request.Method == "GET" && request.Path.StartsWith("/files/")) return ServeFile(Uri.UnescapeDataString(request.Path.Substring(7)));
             return Response.Error(404, "Not found");
@@ -290,6 +298,49 @@ namespace CustomGenerator.Launcher
             return Response.RawJson(Json.Serialize(new Dictionary<string, object> {
                 ["name"] = name, ["width"] = file.Width, ["height"] = file.Height, ["bits"] = file.Bits, ["files"] = List("heightmaps", HeightmapFile.Extensions),
             }));
+        }
+
+        // ---------- profiles: named copies of the config in HarmonyConfig/profiles ----------
+        // The editor stores them with code names instead of the localized keys, so a profile works in either language
+        private static string ProfileDir => Path.Combine(ConfigDir, "profiles");
+        private static readonly System.Text.RegularExpressions.Regex ProfileName = new System.Text.RegularExpressions.Regex(@"^[\p{L}\p{N}][\p{L}\p{N} _\-.()]{0,59}$");
+
+        private static string ProfilePath(string name) {
+            name = name?.Trim();
+            return name != null && ProfileName.IsMatch(name) && !name.EndsWith(".") ? Path.Combine(ProfileDir, name + ".json") : null;
+        }
+
+        private static List<Dictionary<string, object>> Profiles() {
+            var list = new List<Dictionary<string, object>>();
+            if (!Directory.Exists(ProfileDir)) return list;
+            foreach (var file in new DirectoryInfo(ProfileDir).GetFiles("*.json").OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase))
+                list.Add(new Dictionary<string, object> { ["name"] = Path.GetFileNameWithoutExtension(file.Name), ["modified"] = file.LastWriteTime.ToString("yyyy-MM-dd HH:mm") });
+            return list;
+        }
+
+        private static Response LoadProfile(string name) {
+            string path = ProfilePath(name);
+            if (path == null || !File.Exists(path)) return Response.Error(404, "No such profile");
+            string json = ReadJson(path);
+            return json == "null" ? Response.Error(400, "The profile file isn't valid JSON") : Response.RawJson(json);
+        }
+
+        private static Response SaveProfile(string name, byte[] body) {
+            string path = ProfilePath(name);
+            if (path == null) return Response.Error(400, "Use letters, digits, spaces and - _ . ( ) in the name, up to 60");
+            string text = Utf8.GetString(body);
+            try { if (!(Json.DeserializeObject(text) is Dictionary<string, object>)) throw new FormatException("not an object"); }
+            catch (Exception ex) { return Response.Error(400, "Invalid JSON: " + ex.Message); }
+            Directory.CreateDirectory(ProfileDir);
+            File.WriteAllText(path, text, Utf8);
+            return Response.RawJson(Json.Serialize(Profiles()));
+        }
+
+        private static Response DeleteProfile(string name) {
+            string path = ProfilePath(name);
+            if (path == null || !File.Exists(path)) return Response.Error(404, "No such profile");
+            File.Delete(path);
+            return Response.RawJson(Json.Serialize(Profiles()));
         }
 
         private static Response ServeFile(string relative) {

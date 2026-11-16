@@ -349,6 +349,8 @@ nav .sep { margin: 12px 10px; }
 .pv-note { font-size: 12px; color: var(--muted); margin: 0; }
 .pv-error { font-size: 12.5px; color: var(--bad); margin: 0; }
 .pv-full { display: block; width: 100%; border-radius: 10px; }
+.pf-save { display: flex; gap: 8px; padding: 12px 20px; }
+.pf-save input { flex: 1; }
 
 @media (max-width: 760px) {
   .pv { grid-template-columns: 1fr; }
@@ -444,6 +446,9 @@ const UI = {
     pvNote: "The land in a second, from your Rust server's own terrain code. Rivers, mountains, canyons, lakes and monuments come during the real generation.",
     pvLand: "Land", pvWas: "was {0}%", pvIslands: "Islands added", pvVolcano: "Volcano", pvTime: "Took", pvNone: "none", pvOpen: "Preview", pvHeightmap: "Heightmap {0}",
     upload: "Upload…", hmUploaded: "{0} uploaded: {1}", hmNone: "No files in heightmaps/ yet: upload a PNG or RAW.",
+    profiles: "Profiles", profileName: "Profile name", profileSave: "Save current settings", profileOverwrite: "Overwrite {0}?",
+    profileHint: "A profile is a named copy of all settings, kept in HarmonyConfig/profiles. Loading one shows what changes; save the config afterwards.",
+    noProfiles: "No profiles yet.", load: "Load", current: "last used", profileSaved: "Profile {0} saved", profileLoaded: "Profile {0} loaded. Review and save.",
   },
   ru: {
     subtitleEmbedded: "Значения с последнего запуска сервера, {0}", subtitleFile: "Файл: {0}", subtitleApi: "Лаунчер · {0}",
@@ -507,6 +512,9 @@ const UI = {
     pvNote: "Суша за секунду, тем же кодом рельефа, что у вашего сервера Rust. Реки, горы, каньоны, озёра и монументы появятся при настоящей генерации.",
     pvLand: "Суша", pvWas: "было {0}%", pvIslands: "Добавлено островов", pvVolcano: "Вулкан", pvTime: "Заняло", pvNone: "нет", pvOpen: "Превью", pvHeightmap: "Карта высот {0}",
     upload: "Загрузить…", hmUploaded: "{0} загружен: {1}", hmNone: "В heightmaps/ пока нет файлов: загрузите PNG или RAW.",
+    profiles: "Профили", profileName: "Имя профиля", profileSave: "Сохранить текущие настройки", profileOverwrite: "Перезаписать {0}?",
+    profileHint: "Профиль — именованная копия всех настроек, лежит в HarmonyConfig/profiles. При загрузке видно, что изменится; потом сохраните конфиг.",
+    noProfiles: "Профилей пока нет.", load: "Загрузить", current: "последний", profileSaved: "Профиль {0} сохранён", profileLoaded: "Профиль {0} загружен. Проверьте и сохраните.",
   },
 };
 
@@ -1259,6 +1267,7 @@ function render() {
     hasConfig ? h("span", { class: "pill", id: "errors", hidden: true }) : null,
     hasConfig ? h("span", { class: "status", id: "status" }) : null,
     hasConfig ? h("button", { type: "button", class: "btn ghost", onclick: openPresets }, "✦ " + t("presets")) : null,
+    API && hasConfig ? h("button", { type: "button", class: "btn ghost", onclick: openProfiles }, "▤ " + t("profiles")) : null,
     langNode ? h("select", { "aria-label": t("language"), title: t("language"), onchange: e => {
       S.config[LANG_KEY] = e.target.value; S.lang = e.target.value; changed(); render(); toast(t("bannerLang"));
     } }, (langNode.enum || ["en", "ru"]).map(v => h("option", { value: v, selected: v === S.config[LANG_KEY] }, v.toUpperCase()))) : null,
@@ -1882,16 +1891,104 @@ function openPresets() {
 function previewPreset(preset) {
   const next = clone(S.config);
   preset.apply(presetContext(next));
+  showChanges(preset.title[S.lang] || preset.title.en, next, openPresets, () => toast(t("applied")));
+}
+
+// What a preset or a profile would change, with Back and Apply
+function showChanges(title, next, back, done) {
   const changes = diff(S.schema, S.config, next, [], []);
   const content = changes.length
     ? h("table", { class: "diff" }, h("tbody", {}, changes.map(c => h("tr", {}, h("td", { class: "path" }, c.path),
         h("td", {}, h("span", { class: "from" }, show(c.from)), " → ", h("span", { class: "to" }, show(c.to)))))))
     : h("p", { style: "padding:12px 20px; color:var(--muted)" }, t("nothingChanges"));
-  modal(preset.title[S.lang] || preset.title.en, content, close => [
-    h("button", { type: "button", class: "btn", onclick: () => { close(); openPresets(); } }, t("back")),
+  modal(title, content, close => [
+    h("button", { type: "button", class: "btn", onclick: () => { close(); back(); } }, t("back")),
     h("button", { type: "button", class: "btn primary", disabled: !changes.length, onclick: () => {
-      S.config = next; close(); changed(); drawNav(); drawSection(); toast(t("applied"));
+      S.config = next; close(); changed(); drawNav(); drawSection(); done && done();
     } }, t("apply"))]);
+}
+
+/* ---------- profiles ---------- */
+// Profiles keep code names (x-name) instead of the keys of the config's language, so they load in either language
+function toCodeNames(node, value) {
+  if (isGroup(node) && value && typeof value === "object" && !Array.isArray(value)) {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      const child = node.properties[k];
+      if (k === LANG_KEY || child?.readOnly) continue;
+      out[child?.["x-name"] || k] = child ? toCodeNames(child, v) : clone(v);
+    }
+    return out;
+  }
+  if (isObjectList(node) && Array.isArray(value)) return value.map(x => toCodeNames(node.items, x));
+  return clone(value);
+}
+
+// Profile values over the current config: what the profile doesn't have (settings added later) stays as it is
+function fromCodeNames(node, base, value) {
+  if (isGroup(node) && value && typeof value === "object" && !Array.isArray(value)) {
+    const out = base && typeof base === "object" && !Array.isArray(base) ? { ...base } : {};
+    for (const [name, v] of Object.entries(value)) {
+      const k = keyOf(node, name) || name;
+      const child = node.properties[k];
+      if (child?.readOnly) continue;
+      out[k] = child ? fromCodeNames(child, out[k], v) : clone(v);
+    }
+    return out;
+  }
+  if (isObjectList(node) && Array.isArray(value)) return value.map(x => fromCodeNames(node.items, defaultsFor(node.items), x));
+  return clone(value);
+}
+
+async function openProfiles() {
+  let list = [];
+  try { list = await api("GET", "/api/profiles"); } catch (e) { toast(e.message); return; }
+  const body = h("div");
+  const name = h("input", { type: "text", value: store.get("profile", ""), placeholder: t("profileName"), "aria-label": t("profileName"), spellcheck: false, maxlength: 60 });
+  let armed = null;
+  const saveBtn = h("button", { type: "button", class: "btn primary", onclick: async () => {
+    const n = name.value.trim();
+    if (!n) { name.focus(); return; }
+    if (list.some(p => p.name.toLowerCase() === n.toLowerCase()) && armed !== n) {
+      armed = n; saveBtn.textContent = t("profileOverwrite", n);
+      setTimeout(() => { armed = null; saveBtn.textContent = t("profileSave"); }, 3000);
+      return;
+    }
+    const data = { profile: n, saved: new Date().toISOString(), config: toCodeNames(S.schema, S.config) };
+    try {
+      list = await api("PUT", "/api/profile?name=" + encodeURIComponent(n), JSON.stringify(data, null, 2));
+      store.set("profile", n); armed = null; saveBtn.textContent = t("profileSave"); draw(); toast(t("profileSaved", n));
+    } catch (e) { toast(e.message); }
+  } }, t("profileSave"));
+  name.addEventListener("keydown", e => { if (e.key === "Enter") saveBtn.click(); });
+
+  const load = async (p, close) => {
+    try {
+      const data = await api("GET", "/api/profile?name=" + encodeURIComponent(p.name));
+      const next = fromCodeNames(S.schema, S.config, data.config || data);
+      next[LANG_KEY] = S.config[LANG_KEY];
+      close();
+      showChanges(`${t("profiles")} · ${p.name}`, next, openProfiles, () => { store.set("profile", p.name); toast(t("profileLoaded", p.name)); });
+    } catch (e) { toast(e.message); }
+  };
+  const row = (p, close) => {
+    let sure = false;
+    const del = h("button", { type: "button", class: "btn small ghost danger", onclick: async () => {
+      if (!sure) { sure = true; del.textContent = t("removeSure"); setTimeout(() => { sure = false; del.textContent = t("remove"); }, 3000); return; }
+      try { list = await api("DELETE", "/api/profile?name=" + encodeURIComponent(p.name)); draw(); } catch (e) { toast(e.message); }
+    } }, t("remove"));
+    return h("div", { class: "preset" },
+      h("div", {}, h("b", {}, p.name), p.name === store.get("profile", "") ? h("span", { class: "badge on", style: "margin-left:8px" }, t("current")) : null, h("p", {}, p.modified)),
+      del, h("button", { type: "button", class: "btn small", onclick: () => load(p, close) }, t("load") + " →"));
+  };
+  let close;
+  const draw = () => fill(body,
+    h("div", { class: "pf-save" }, name, saveBtn),
+    h("p", { class: "hint", style: "padding: 0 20px 8px; margin: 0" }, t("profileHint")),
+    list.length ? list.map(p => row(p, close)) : h("p", { class: "hint", style: "padding: 8px 20px" }, t("noProfiles")));
+  close = modal(t("profiles"), body);
+  draw();
+  name.focus();
 }
 
 /* ---------- files ---------- */
