@@ -350,6 +350,19 @@ nav .sep { margin: 12px 10px; }
 .pv-error { font-size: 12.5px; color: var(--bad); margin: 0; }
 .pv-full { display: block; width: 100%; border-radius: 10px; }
 .pf-save { display: flex; gap: 8px; padding: 12px 20px; }
+
+/* Heightmap painter */
+.modal.wide { width: min(1180px, 100%); max-height: 94vh; }
+.hm { display: grid; grid-template-columns: minmax(0, min(74vh, 680px)) minmax(260px, 1fr); gap: 18px; padding: 8px 20px 16px; align-items: start; }
+.hm-stage { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); touch-action: none; }
+.hm-canvas { width: 100%; height: 100%; display: block; cursor: none; }
+.hm-cursor { position: absolute; display: none; border: 2px solid #fffc; border-radius: 50%; box-shadow: 0 0 0 1px #0006; pointer-events: none; }
+.hm-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.hm-slider { display: grid; grid-template-columns: 90px 1fr; gap: 10px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.hm-readout { font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--muted); min-width: 110px; }
+.hm-sep { height: 1px; background: var(--line); margin: 4px 0; }
+.hm-side .pv-row input[type=text] { flex: 1; min-width: 120px; }
+@media (max-width: 900px) { .hm { grid-template-columns: 1fr; } }
 .pf-save input { flex: 1; }
 
 @media (max-width: 760px) {
@@ -449,6 +462,13 @@ const UI = {
     profiles: "Profiles", profileName: "Profile name", profileSave: "Save current settings", profileOverwrite: "Overwrite {0}?",
     profileHint: "A profile is a named copy of all settings, kept in HarmonyConfig/profiles. Loading one shows what changes; save the config afterwards.",
     noProfiles: "No profiles yet.", load: "Load", current: "last used", profileSaved: "Profile {0} saved", profileLoaded: "Profile {0} loaded. Review and save.",
+    hmDraw: "Draw…", hmDrawMap: "Draw a map", hmTitle: "Draw the terrain",
+    hmHelp: "Left button paints with the tool, right button (or Shift) lowers. Blue is sea, sand is the coast, then grass, rock and snow up high. Saving adapts the drawing for Rust: ocean along the map edge, smooth slopes, fine relief.",
+    hmRaise: "Raise", hmLower: "Lower", hmSmooth: "Smooth", hmFlatten: "Flatten", hmLand: "Land", hmSea: "Sea",
+    hmBrush: "Brush", hmStrength: "Strength", hmBrushM: "≈ {0} m on the map", hmHeight: "Height: {0} m", hmUndo: "Undo",
+    hmStart: "Start from:", hmIsland: "Island", hmRandom: "Random", hmEmpty: "Sea",
+    hmDetail: "Add fine relief", hmName: "File", hmPreview: "Preview with biomes", hmSave: "Save", hmGenerate: "Save & generate",
+    hmSaved: "{0} saved to heightmaps/ and set as the heightmap",
   },
   ru: {
     subtitleEmbedded: "Значения с последнего запуска сервера, {0}", subtitleFile: "Файл: {0}", subtitleApi: "Лаунчер · {0}",
@@ -515,6 +535,13 @@ const UI = {
     profiles: "Профили", profileName: "Имя профиля", profileSave: "Сохранить текущие настройки", profileOverwrite: "Перезаписать {0}?",
     profileHint: "Профиль — именованная копия всех настроек, лежит в HarmonyConfig/profiles. При загрузке видно, что изменится; потом сохраните конфиг.",
     noProfiles: "Профилей пока нет.", load: "Загрузить", current: "последний", profileSaved: "Профиль {0} сохранён", profileLoaded: "Профиль {0} загружен. Проверьте и сохраните.",
+    hmDraw: "Нарисовать…", hmDrawMap: "Нарисовать карту", hmTitle: "Рисование рельефа",
+    hmHelp: "Левая кнопка рисует выбранным инструментом, правая (или Shift) — опускает. Синее — море, песок — берег, дальше трава, скалы и снег наверху. При сохранении рисунок подгоняется под Rust: океан по краю карты, плавные склоны, мелкий рельеф.",
+    hmRaise: "Поднять", hmLower: "Опустить", hmSmooth: "Сгладить", hmFlatten: "Выровнять", hmLand: "Суша", hmSea: "Море",
+    hmBrush: "Кисть", hmStrength: "Сила", hmBrushM: "≈ {0} м на карте", hmHeight: "Высота: {0} м", hmUndo: "Отменить",
+    hmStart: "Начать с:", hmIsland: "Остров", hmRandom: "Случайно", hmEmpty: "Море",
+    hmDetail: "Добавить мелкий рельеф", hmName: "Файл", hmPreview: "Превью с биомами", hmSave: "Сохранить", hmGenerate: "Сохранить и сгенерировать",
+    hmSaved: "{0} сохранён в heightmaps/ и выбран картой высот",
   },
 };
 
@@ -819,7 +846,8 @@ function fieldRow(key, node, obj, onChange, ctx) {
             toast(t("hmUploaded", d.name, `${d.width}×${d.height}, ${d.bits} bit`));
           } catch (e) { toast(e.message); }
         } });
-        control.append(h("button", { type: "button", class: "btn small", onclick: () => pick.click() }, t("upload")), pick);
+        control.append(h("button", { type: "button", class: "btn small", onclick: () => pick.click() }, t("upload")),
+          h("button", { type: "button", class: "btn small", onclick: openPainter }, "✎ " + t("hmDraw")), pick);
       }
       label.append(hint);
       draw();
@@ -1606,7 +1634,8 @@ function previewPanel() {
         h("button", { type: "button", class: "btn small ghost", onclick: () => {
           if (!gen.runs.some(r => r.size === size && r.seed === seed)) gen.runs.push({ size, seed });
           saveGen(); toast(t("pvAdded"));
-        } }, "+ " + t("pvToRuns"))),
+        } }, "+ " + t("pvToRuns")),
+        h("button", { type: "button", class: "btn small ghost", onclick: openPainter }, "✎ " + t("hmDrawMap"))),
       stats, error, h("p", { class: "pv-note" }, t("pvNote"))));
   // First picture once the panel is on screen (the card may start folded)
   const spy = new IntersectionObserver(entries => { if (entries.some(e => e.isIntersecting) && !started) { spy.disconnect(); run(); } });
@@ -1623,6 +1652,324 @@ async function previewRun(run) {
     fill(body, h("img", { class: "pv-full", src: d.image, alt: `${run.size} / ${run.seed}` }), h("div", { class: "pv-stats", style: "margin-top:12px" }, ...previewStats(d)),
       h("p", { class: "pv-note", style: "margin-top:10px" }, t("pvNote")));
   } catch (e) { fill(body, h("p", { class: "pv-error" }, e.message)); }
+}
+
+/* ---------- heightmap painter ---------- */
+// Draw the terrain in meters (sea level 0) on a 512 grid; saving "adapts" it for Rust (ocean at the map edge, brush
+// marks smoothed, fine relief added) and uploads a 16-bit PNG to heightmaps/, black = HM_MIN, white = HM_MAX
+const HM_N = 512, HM_MIN = -60, HM_MAX = 240, HM_DRAFT = "hmDraft";
+
+function hmNoise(seed) {
+  // A 64x64 grid that wraps around, so any coordinate is seamless
+  const g = new Float32Array(64 * 64);
+  let s = (seed >>> 0) || 1;
+  for (let i = 0; i < g.length; i++) { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; g[i] = ((s >>> 0) % 10000) / 10000 - 0.5; }
+  const at = (x, y, f) => {
+    const gx = x * f, gy = y * f, ix = Math.floor(gx), iy = Math.floor(gy);
+    const x0 = ((ix % 64) + 64) % 64, y0 = ((iy % 64) + 64) % 64, x1 = (x0 + 1) % 64, y1 = (y0 + 1) % 64;
+    let fx = gx - ix, fy = gy - iy;
+    fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+    const a = g[y0 * 64 + x0], b = g[y0 * 64 + x1], c = g[y1 * 64 + x0], d = g[y1 * 64 + x1];
+    return (a + (b - a) * fx) * (1 - fy) + (c + (d - c) * fx) * fy;
+  };
+  return (x, y) => at(x, y, 5) * 0.55 + at(x, y, 13) * 0.3 + at(x, y, 31) * 0.15;
+}
+
+const hmTemplates = {
+  sea: () => new Float32Array(HM_N * HM_N).fill(-35),
+  island: () => {
+    const out = new Float32Array(HM_N * HM_N), n = hmNoise(Math.random() * 1e9);
+    for (let z = 0; z < HM_N; z++) for (let x = 0; x < HM_N; x++) {
+      const u = x / HM_N, v = z / HM_N, r = Math.hypot(u - 0.5, v - 0.5) + n(u, v) * 0.12;
+      out[z * HM_N + x] = r < 0.33 ? 4 + 70 * Math.pow(1 - r / 0.33, 1.5) + n(v, u) * 30 : -6 - 40 * Math.min(1, (r - 0.33) / 0.12);
+    }
+    return out;
+  },
+  random: () => {
+    const out = new Float32Array(HM_N * HM_N), n = hmNoise(Math.random() * 1e9);
+    for (let z = 0; z < HM_N; z++) for (let x = 0; x < HM_N; x++) out[z * HM_N + x] = n(x / HM_N, z / HM_N) * 260 + 8;
+    return out;
+  },
+};
+
+function hmColor(v) {
+  if (v <= 0) { const t = Math.sqrt(Math.min(1, -v / 60)); return [96 + (28 - 96) * t, 170 + (62 - 170) * t, 190 + (98 - 190) * t]; }
+  const stops = [[0, [222, 205, 160]], [3, [120, 160, 84]], [60, [98, 128, 70]], [120, [132, 120, 90]], [180, [140, 134, 124]], [215, [236, 240, 244]]];
+  for (let i = 1; i < stops.length; i++) if (v <= stops[i][0]) {
+    const [a, ca] = stops[i - 1], [b, cb] = stops[i], t = (v - a) / (b - a);
+    return ca.map((c, k) => c + (cb[k] - c) * t);
+  }
+  return stops.at(-1)[1];
+}
+
+// Ocean at the map edge, brush marks smoothed, fine relief: what Rust needs from a hand-drawn map
+function hmAdapt(src, detail) {
+  const n = HM_N, out = Float32Array.from(src), tmp = new Float32Array(n * n);
+  for (let pass = 0; pass < 2; pass++) {
+    for (let z = 0; z < n; z++) for (let x = 0; x < n; x++) {
+      let s = 0, c = 0;
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, zz = z + dz;
+        if (xx >= 0 && zz >= 0 && xx < n && zz < n) { s += out[zz * n + xx]; c++; }
+      }
+      tmp[z * n + x] = s / c;
+    }
+    out.set(tmp);
+  }
+  const noise = hmNoise(1234567);
+  for (let z = 0; z < n; z++) for (let x = 0; x < n; x++) {
+    const i = z * n + x, u = x / n, v = z / n;
+    if (detail && out[i] > 1) out[i] += noise(u * 3, v * 3) * Math.min(1, out[i] / 15) * 18;
+    // The outer 3% is deep sea, fading into the drawing over the next 4%
+    const edge = Math.min(u, v, 1 - u, 1 - v), t = Math.max(0, Math.min(1, (edge - 0.03) / 0.04));
+    const k = t * t * (3 - 2 * t);
+    out[i] = Math.min(out[i], -40) * (1 - k) + out[i] * k;
+  }
+  return out;
+}
+
+const hmCrc = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; table[i] = c >>> 0; }
+  return bytes => { let c = 0xffffffff; for (const b of bytes) c = table[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+})();
+
+// 16-bit grayscale PNG, picture top = north
+async function hmPng(heights) {
+  const n = HM_N, raw = new Uint8Array((n * 2 + 1) * n);
+  for (let y = 0; y < n; y++) {
+    const z = n - 1 - y;
+    for (let x = 0; x < n; x++) {
+      const v = Math.round(Math.max(0, Math.min(1, (heights[z * n + x] - HM_MIN) / (HM_MAX - HM_MIN))) * 65535);
+      raw[y * (n * 2 + 1) + 1 + x * 2] = v >> 8; raw[y * (n * 2 + 1) + 2 + x * 2] = v & 255;
+    }
+  }
+  const data = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate"))).arrayBuffer());
+  const chunk = (type, body) => {
+    const out = new Uint8Array(12 + body.length), dv = new DataView(out.buffer);
+    dv.setUint32(0, body.length);
+    out.set([...type].map(c => c.charCodeAt(0)), 4); out.set(body, 8);
+    dv.setUint32(8 + body.length, hmCrc(out.subarray(4, 8 + body.length)));
+    return out;
+  };
+  const ihdr = new Uint8Array(13), dv = new DataView(ihdr.buffer);
+  dv.setUint32(0, n); dv.setUint32(4, n); ihdr.set([16, 0, 0, 0, 0], 8);
+  return new Blob([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", data), chunk("IEND", new Uint8Array(0))], { type: "image/png" });
+}
+
+function hmLoadDraft() {
+  try {
+    const s = localStorage.getItem("cg." + HM_DRAFT);
+    if (!s) return null;
+    const bytes = Uint8Array.from(atob(s), c => c.charCodeAt(0)), u16 = new Uint16Array(bytes.buffer), out = new Float32Array(HM_N * HM_N);
+    if (u16.length !== out.length) return null;
+    for (let i = 0; i < out.length; i++) out[i] = HM_MIN + u16[i] / 65535 * (HM_MAX - HM_MIN);
+    return out;
+  } catch { return null; }
+}
+function hmSaveDraft(heights) {
+  try {
+    const u16 = new Uint16Array(heights.length);
+    for (let i = 0; i < heights.length; i++) u16[i] = Math.round(Math.max(0, Math.min(1, (heights[i] - HM_MIN) / (HM_MAX - HM_MIN))) * 65535);
+    const bytes = new Uint8Array(u16.buffer);
+    let s = "";
+    for (let i = 0; i < bytes.length; i += 32768) s += String.fromCharCode(...bytes.subarray(i, i + 32768));
+    localStorage.setItem("cg." + HM_DRAFT, btoa(s));
+  } catch { /* no storage: the drawing only lives until the dialog closes */ }
+}
+
+// Sets a field of the land shape card through its input when it's on the page, so the row and the preview follow
+function setLandShape(name, value) {
+  const at = locate("Generator.LandShape." + name);
+  if (!at) return;
+  const input = document.querySelector(`#main .row[data-key="${CSS.escape(at.key)}"] input`);
+  if (input) { input.value = value; input.dispatchEvent(new Event("input", { bubbles: true })); }
+  else { at.obj[at.key] = value; changed(); }
+}
+
+function openPainter() {
+  const n = HM_N;
+  let hm = hmLoadDraft() || hmTemplates.island();
+  const undo = [];
+  const tool = { mode: store.get("hmTool", "raise"), size: store.get("hmSize", 24), strength: store.get("hmStrength", 6) };
+  const canvas = h("canvas", { width: n, height: n, class: "hm-canvas" });
+  const ctx2d = canvas.getContext("2d");
+  const image = ctx2d.createImageData(n, n);
+  const cursor = h("div", { class: "hm-cursor" });
+  const readout = h("span", { class: "hm-readout" }, "—");
+  const first = gen.runs[0] || { size: 4000, seed: randomSeed() };
+  let size = pv.size ?? first.size, seed = pv.seed ?? first.seed;
+
+  const draw = () => {
+    const d = image.data;
+    for (let y = 0; y < n; y++) {
+      const z = n - 1 - y;
+      for (let x = 0; x < n; x++) {
+        const i = z * n + x, v = hm[i];
+        let [r, g, b] = hmColor(v);
+        if (v > 0) {
+          const dx = (x < n - 1 ? hm[i + 1] : v) - v, dz = (z < n - 1 ? hm[i + n] : v) - v;
+          const light = 1 + Math.max(-0.45, Math.min(0.35, (-dx + dz) * 0.12));
+          r *= light; g *= light; b *= light;
+        }
+        const o = (y * n + x) * 4;
+        d[o] = r; d[o + 1] = g; d[o + 2] = b; d[o + 3] = 255;
+      }
+    }
+    ctx2d.putImageData(image, 0, 0);
+  };
+  let queued = false;
+  const redraw = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; draw(); }); } };
+
+  const cellAt = e => {
+    const rect = canvas.getBoundingClientRect();
+    return [(e.clientX - rect.left) / rect.width * n, n - 1 - (e.clientY - rect.top) / rect.height * n, rect];
+  };
+  let painting = false, flatTo = 0, lower = false, last = null;
+  const dab = (cx, cz) => {
+    const r = tool.size, r2 = r * r, k = tool.strength;
+    const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(n - 1, Math.ceil(cx + r));
+    const z0 = Math.max(0, Math.floor(cz - r)), z1 = Math.min(n - 1, Math.ceil(cz + r));
+    const mode = lower && tool.mode === "raise" ? "lower" : lower && tool.mode === "land" ? "sea" : tool.mode;
+    const src = mode === "smooth" ? Float32Array.from(hm) : null;
+    for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) {
+      const d2 = (x - cx) ** 2 + (z - cz) ** 2;
+      if (d2 > r2) continue;
+      const f = Math.pow(1 - d2 / r2, 2), i = z * n + x;
+      if (mode === "raise") hm[i] += k * f;
+      else if (mode === "lower") hm[i] -= k * f;
+      else if (mode === "land") hm[i] += (Math.max(hm[i], 6) - hm[i]) * Math.min(1, f * k / 4);
+      else if (mode === "sea") hm[i] += (Math.min(hm[i], -25) - hm[i]) * Math.min(1, f * k / 4);
+      else if (mode === "flatten") hm[i] += (flatTo - hm[i]) * Math.min(1, f * k / 10);
+      else if (mode === "smooth" && x > 0 && z > 0 && x < n - 1 && z < n - 1) {
+        const avg = (src[i - 1] + src[i + 1] + src[i - n] + src[i + n] + src[i - n - 1] + src[i - n + 1] + src[i + n - 1] + src[i + n + 1] + src[i]) / 9;
+        hm[i] += (avg - hm[i]) * Math.min(1, f * k / 6);
+      }
+      hm[i] = Math.max(HM_MIN, Math.min(HM_MAX, hm[i]));
+    }
+    redraw();
+  };
+  const stroke = e => {
+    const [cx, cz] = cellAt(e);
+    // Dabs every quarter of the brush along the way, so fast strokes stay continuous
+    if (last) {
+      const dist = Math.hypot(cx - last[0], cz - last[1]), step = Math.max(1, tool.size / 4);
+      for (let s = step; s < dist; s += step) dab(last[0] + (cx - last[0]) * s / dist, last[1] + (cz - last[1]) * s / dist);
+    }
+    dab(cx, cz);
+    last = [cx, cz];
+  };
+  canvas.addEventListener("contextmenu", e => e.preventDefault());
+  canvas.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    undo.push(Float32Array.from(hm)); if (undo.length > 30) undo.shift();
+    painting = true; lower = e.button === 2 || e.shiftKey; last = null;
+    const [cx, cz] = cellAt(e);
+    flatTo = hm[Math.max(0, Math.min(n - 1, Math.round(cz))) * n + Math.max(0, Math.min(n - 1, Math.round(cx)))];
+    stroke(e);
+  });
+  canvas.addEventListener("pointermove", e => {
+    const [cx, cz, rect] = cellAt(e);
+    const px = rect.width / n;
+    Object.assign(cursor.style, { display: "block", width: `${tool.size * 2 * px}px`, height: `${tool.size * 2 * px}px`,
+      left: `${e.clientX - rect.left - tool.size * px}px`, top: `${e.clientY - rect.top - tool.size * px}px` });
+    const xi = Math.floor(cx), zi = Math.floor(cz);
+    if (xi >= 0 && zi >= 0 && xi < n && zi < n) readout.textContent = t("hmHeight", Math.round(hm[zi * n + xi]));
+    if (painting) stroke(e);
+  });
+  const end = () => { if (painting) { painting = false; hmSaveDraft(hm); } };
+  canvas.addEventListener("pointerup", end);
+  canvas.addEventListener("pointercancel", end);
+  canvas.addEventListener("pointerleave", () => { cursor.style.display = "none"; });
+
+  const sizeLabel = h("span", { class: "hint", style: "margin:0" });
+  const updateLabels = () => { sizeLabel.textContent = t("hmBrushM", Math.round(tool.size * size / n)); };
+  const tools = [["raise", t("hmRaise")], ["lower", t("hmLower")], ["smooth", t("hmSmooth")], ["flatten", t("hmFlatten")], ["land", t("hmLand")], ["sea", t("hmSea")]];
+  const toolChips = h("div", { class: "chips", style: "justify-content:flex-start" }, tools.map(([id, label]) =>
+    h("button", { type: "button", class: "chip", "aria-pressed": String(tool.mode === id), onclick: e => {
+      tool.mode = id; store.set("hmTool", id);
+      toolChips.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c === e.currentTarget)));
+    } }, label)));
+  const slider = (label, key, min, max) => h("label", { class: "hm-slider" }, h("span", {}, label),
+    h("input", { type: "range", min, max, value: tool[key], oninput: e => { tool[key] = Number(e.target.value); store.set(key === "size" ? "hmSize" : "hmStrength", tool[key]); updateLabels(); } }));
+  const name = h("input", { type: "text", value: store.get("hmName", "drawn.png"), spellcheck: false, "aria-label": t("hmName") });
+  const detail = h("input", { type: "checkbox", checked: store.get("hmDetail", true), onchange: e => store.set("hmDetail", e.target.checked) });
+  const sizeSel = h("select", { "aria-label": t("size"), onchange: e => { size = Number(e.target.value); updateLabels(); } },
+    [...new Set([...SIZES, size])].sort((a, b) => a - b).map(v => h("option", { value: v, selected: v === size }, v)));
+  const seedIn = h("input", { type: "number", min: 0, value: seed, "aria-label": t("seed"), style: "width:130px", onchange: e => { seed = Number(e.target.value) || 0; } });
+  const pvImg = h("img", { class: "pv-full", hidden: true, alt: t("pvTitle") });
+  const status = h("p", { class: "pv-note" });
+  const template = key => { undo.push(Float32Array.from(hm)); hm = hmTemplates[key](); hmSaveDraft(hm); draw(); };
+  const doUndo = () => { if (undo.length) { hm = undo.pop(); hmSaveDraft(hm); draw(); } };
+  const keys = e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); doUndo(); } };
+
+  // Adapted copy to heightmaps/, then the land shape fields point at it
+  const upload = async () => {
+    let file = name.value.trim() || "drawn.png";
+    if (!/\.png$/i.test(file)) file += ".png";
+    store.set("hmName", file);
+    const blob = await hmPng(hmAdapt(hm, detail.checked));
+    const res = await fetch("/api/heightmap?name=" + encodeURIComponent(file), { method: "PUT", body: blob, headers: { "X-CG": "1" } });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.error || res.statusText);
+    S.extra.files = { ...S.extra.files, heightmaps: d.files };
+    setLandShape("Heightmap", d.name); setLandShape("HeightmapMin", HM_MIN); setLandShape("HeightmapMax", HM_MAX);
+    return d.name;
+  };
+  const busy = async (button, work) => {
+    const old = button.textContent; button.disabled = true; button.textContent = "…";
+    try { await work(); } catch (e) { toast(e.message); }
+    button.disabled = false; button.textContent = old;
+  };
+  const previewBtn = h("button", { type: "button", class: "btn", onclick: () => busy(previewBtn, async () => {
+    const file = await upload();
+    const d = await api("POST", "/api/preview", JSON.stringify(previewParams(size, seed)));
+    pvImg.src = d.image; pvImg.hidden = false;
+    status.textContent = `${file} · ${t("pvLand")} ${d.land}%`;
+  }) }, t("hmPreview"));
+  const saveBtn = h("button", { type: "button", class: "btn", onclick: () => busy(saveBtn, async () => {
+    const file = await upload(); toast(t("hmSaved", file)); status.textContent = t("hmSaved", file);
+  }) }, t("hmSave"));
+  let close = null;
+  const genBtn = h("button", { type: "button", class: "btn primary", disabled: !S.extra.rustFound || generating(), onclick: () => busy(genBtn, async () => {
+    await upload();
+    if (!(await save())) return;
+    await api("POST", "/api/generate", JSON.stringify({ runs: [{ size, seed }], args: gen.args }));
+    close();
+    toast(t("genStarted"));
+    go(TAB_GENERATE);
+    gen.lastDone = 0;
+    poll();
+  }) }, t("hmGenerate"));
+
+  const body = h("div", { class: "hm" },
+    h("div", { class: "hm-stage" }, canvas, cursor),
+    h("div", { class: "hm-side" },
+      h("p", { class: "pv-note" }, t("hmHelp")),
+      toolChips,
+      slider(t("hmBrush"), "size", 3, 90), sizeLabel,
+      slider(t("hmStrength"), "strength", 1, 20),
+      h("div", { class: "pv-row" }, readout, h("button", { type: "button", class: "btn small", onclick: doUndo, title: "Ctrl+Z" }, "↶ " + t("hmUndo"))),
+      h("div", { class: "pv-row" }, h("span", { class: "hint", style: "margin:0" }, t("hmStart")),
+        h("button", { type: "button", class: "btn small", onclick: () => template("island") }, t("hmIsland")),
+        h("button", { type: "button", class: "btn small", onclick: () => template("random") }, t("hmRandom")),
+        h("button", { type: "button", class: "btn small", onclick: () => template("sea") }, t("hmEmpty"))),
+      h("div", { class: "hm-sep" }),
+      h("label", { class: "pv-row", style: "font-size:12.5px; color:var(--muted)" }, h("span", { class: "switch" }, detail, h("span")), t("hmDetail")),
+      h("div", { class: "pv-row" }, h("span", { class: "hint", style: "margin:0" }, t("hmName")), name),
+      h("div", { class: "pv-row" }, sizeSel, seedIn,
+        h("button", { type: "button", class: "btn small", title: t("random"), onclick: () => { seed = randomSeed(); seedIn.value = seed; } }, "🎲")),
+      h("div", { class: "pv-row" }, previewBtn, saveBtn, genBtn),
+      status, pvImg));
+  close = modal(t("hmTitle"), body);
+  const overlay = document.querySelector(".overlay:last-of-type");
+  overlay?.querySelector(".modal")?.classList.add("wide");
+  window.addEventListener("keydown", keys);
+  // When the dialog goes away (×, Esc, click outside): keep the drawing and stop listening for Ctrl+Z
+  new MutationObserver((_, obs) => { if (!overlay?.isConnected) { window.removeEventListener("keydown", keys); hmSaveDraft(hm); obs.disconnect(); } }).observe(document.body, { childList: true });
+  updateLabels();
+  draw();
 }
 
 /* ---------- maps ---------- */
